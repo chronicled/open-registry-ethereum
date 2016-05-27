@@ -1,0 +1,16 @@
+{
+  "name": "backend-sdk",
+  "version": "1.0.0",
+  "description": "",
+  "main": "lib/index.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "author": "Johann Barbie <johann@ambisafe.co> (http://ambisafe.co/)",
+  "dependencies": {
+    "async": "^1.5.2",
+    "eth-lightwallet": "^2.3.2",
+    "object-assign": "^4.1.0",
+    "web3-provider-engine": "^7.7.0"
+  }
+}
