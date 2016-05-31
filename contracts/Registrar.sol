@@ -15,16 +15,16 @@ contract Registrar is AmbiEnabled {
         authenticators.length++;
     }
     
-    function isAuthenticator(address _auth) returns (bool) {
-        uint pos = authenticatorIndex[_auth];
+    function isAuthenticator(address _authenticator) returns (bool) {
+        uint pos = authenticatorIndex[_authenticator];
         if (pos > 0 && authenticators[pos].isActive) {
             return true;
         }
         return false;
     }
     
-    function isDelegate(address _auth, address _delegate) returns (bool) {
-        uint pos = authenticatorIndex[_auth];
+    function isDelegate(address _authenticator, address _delegate) returns (bool) {
+        uint pos = authenticatorIndex[_authenticator];
         if (pos > 0 && authenticators[pos].isActive && authenticators[pos].delegate == _delegate) {
             return true;
         }
