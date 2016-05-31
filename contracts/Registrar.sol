@@ -14,8 +14,12 @@ contract Registrar is AmbiEnabled {
     function Registrar() {
         authenticators.length++;
     }
+
+    function getAuthenticatorsSize() constant returns (uint) {
+        return authenticators.length;
+    }
     
-    function isAuthenticator(address _authenticator) returns (bool) {
+    function isAuthenticator(address _authenticator) constant returns (bool) {
         uint pos = authenticatorIndex[_authenticator];
         if (pos > 0 && authenticators[pos].isActive) {
             return true;
@@ -23,7 +27,7 @@ contract Registrar is AmbiEnabled {
         return false;
     }
     
-    function isDelegate(address _authenticator, address _delegate) returns (bool) {
+    function isDelegate(address _authenticator, address _delegate) constant returns (bool) {
         uint pos = authenticatorIndex[_authenticator];
         if (pos > 0 && authenticators[pos].isActive && authenticators[pos].delegate == _delegate) {
             return true;
@@ -32,6 +36,9 @@ contract Registrar is AmbiEnabled {
     }
     
     function add(address _authenticator, address _delegate) checkAccess("owner") {
+        if (authenticatorIndex[_authenticator] > 0) {
+            throw;
+        }
         uint pos = authenticators.length++;
         authenticators[pos] = Authenticator(_authenticator, _delegate, true);
         authenticatorIndex[_authenticator] = pos;
