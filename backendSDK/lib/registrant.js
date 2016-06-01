@@ -27,6 +27,40 @@ Registrant.prototype.merge = function (bytes32Array) {
   return merged;
 }
 
+Registrant.prototype.createMany = function (schemaIndex, list) {
+  var self = this;
+  return new Promise(function (fulfill, reject) {
+    self.registry.schemas.call(schemaIndex, function(error, proto) {
+      if (error) {
+        reject(error);
+      }
+      var builder = ProtoBuf.loadJson(ProtoBuf.DotProto.Parser.parse(proto));
+      var Identities = builder.build("Identities");
+
+      var schemaIndezes = [];
+      var slicesLength = [];
+      var slicesArray = [];
+      var references = [];
+      for (var i = 0; i < list.length; i++) {
+        schemaIndezes.push(schemaIndex);
+        var ids = new Identities(list[i].identities);
+        var slices = self.slice(ids.encodeHex());
+        slicesLength.push(slices.length);
+        slicesArray = slicesArray.concat(slices);
+        references.push(list[i].reference);
+      }
+
+      self.registry.createMany(schemaIndezes, slicesLength, slicesArray, references, {from: self.address}, function(err, data) {
+        if (err) {
+          reject(err);
+        }
+        fulfill(data);
+      });
+
+    });
+  });
+}
+
 Registrant.prototype.create = function (schemaIndex, identities, reference) {
   var self = this;
   return new Promise(function (fulfill, reject) {

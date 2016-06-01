@@ -68,7 +68,6 @@ describe('registrant sdk', function() {
 
     var registrant = new Registrant(contract);
 
-
     registrant.getAsset('0x1234').then(function(rv) {
       rv = JSON.parse(JSON.stringify(rv));
       expect(rv).to.eql(entry);
@@ -77,18 +76,40 @@ describe('registrant sdk', function() {
   });
 
   it('should allow to create asset that is correctly serialized.', function(done) {
-    //function create(uint _schemaIndex, bytes32[] _identities, bytes32 _reference) isRegistrant(
-    //Registrant.prototype.create = function (schemaIndex, identities, reference) {
+
     var contract = { create: function() {} , schemas: { call: function() {} }};
-    sinon.stub(contract, 'create').yields(null, '0x1234');
+    sinon.stub(contract, 'create').yields(null, '0x4321');
     sinon.stub(contract.schemas, 'call').yields(null, proto);
 
     var registrant = new Registrant(contract);
 
-
     registrant.create(1, entry, '0x1234').then(function(rv) {
       expect(contract.create).calledWith(sinon.match.any, ['0x0a050a03757269'], sinon.match.any, sinon.match.any);
+      expect(rv).to.eql('0x4321');
       done();
     }).catch(done);
   });
+
+  it('should allow to batch-create assets.', function(done) {
+    var entries = [{
+      identities: entry,
+      reference: '0x1234'
+    },{
+      identities: entry,
+      reference: '0x3456'
+    }]
+
+    var contract = { createMany: function() {} , schemas: { call: function() {} }};
+    sinon.stub(contract, 'createMany').yields(null, [0, 1]);
+    sinon.stub(contract.schemas, 'call').yields(null, proto);
+
+    var registrant = new Registrant(contract);
+
+    registrant.createMany(1, entries).then(function(rv) {
+      expect(contract.createMany).calledWith(sinon.match.any, [1, 1],['0x0a050a03757269', '0x0a050a03757269'], ['0x1234', '0x3456'], sinon.match.any, sinon.match.any);
+      expect(rv).to.eql([0, 1]);
+      done();
+    }).catch(done);
+  });
+
 });
