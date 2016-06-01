@@ -8,11 +8,13 @@ const VmSubprovider = require('web3-provider-engine/subproviders/vm.js');
 const HookedWalletSubprovider = require('web3-provider-engine/subproviders/hooked-wallet.js');
 const NonceSubprovider = require('web3-provider-engine/subproviders/nonce-tracker.js');
 const wallet = require('eth-lightwallet');
+var ProtoBuf = require("protobufjs");
+var ByteBuffer = ProtoBuf.ByteBuffer;
 
 const pwDerivedKey = new Uint8Array([215,152,86,175,5,168,43,177,135,97,218,89,136,5,110,93,193,114,94,197,247,212,127,83,200,150,255,124,17,245,91,10]);
 const registryAbi = [{"constant":true,"inputs":[{"name":"_reference","type":"bytes32"}],"name":"getRecord","outputs":[{"name":"","type":"uint256"},{"name":"","type":"string"}],"type":"function"},{"constant":true,"inputs":[],"name":"registrar","outputs":[{"name":"","type":"address"}],"type":"function"},{"constant":true,"inputs":[{"name":"","type":"uint256"}],"name":"records","outputs":[{"name":"owner","type":"address"},{"name":"version","type":"uint256"},{"name":"data","type":"string"},{"name":"isValid","type":"bool"}],"type":"function"},{"constant":false,"inputs":[{"name":"_data","type":"string"},{"name":"_version","type":"uint256"},{"name":"_reference","type":"bytes32"},{"name":"_owner","type":"address"}],"name":"createFor","outputs":[],"type":"function"},{"constant":false,"inputs":[{"name":"_data","type":"string"},{"name":"_version","type":"uint256"},{"name":"_reference","type":"bytes32"}],"name":"create","outputs":[{"name":"","type":"uint256"}],"type":"function"},{"constant":false,"inputs":[{"name":"_reference","type":"bytes32"},{"name":"_isValid","type":"bool"}],"name":"setValid","outputs":[{"name":"","type":"bool"}],"type":"function"},{"constant":true,"inputs":[{"name":"","type":"bytes32"}],"name":"recordIndex","outputs":[{"name":"","type":"uint256"}],"type":"function"},{"inputs":[],"type":"constructor"}];
 
-function Authenticator (registryAddress, secretSeed, rpcUrl) {
+function Registrant (registryAddress, secretSeed, rpcUrl) {
 
   var engine = new ProviderEngine();
   var web3 = new Web3(engine);
@@ -69,7 +71,7 @@ function Authenticator (registryAddress, secretSeed, rpcUrl) {
   this.web3 = web3;
 }
 
-Authenticator.prototype.create = function (data, version, reference) {
+Registrant.prototype.create = function (data, version, reference) {
   var self = this;
   return new Promise(function (fulfill, reject) {
     self.registry.create(data, version, reference, {from: self.address}, function(err, data) {
@@ -81,7 +83,7 @@ Authenticator.prototype.create = function (data, version, reference) {
   });
 }
 
-Authenticator.prototype.createFor = function (data, version, reference, owner) {
+Registrant.prototype.createFor = function (data, version, reference, owner) {
   var self = this;
   return new Promise(function (fulfill, reject) {
     self.registry.create(data, version, reference, owner, {from: self.address}, function(err, data) {
@@ -93,7 +95,7 @@ Authenticator.prototype.createFor = function (data, version, reference, owner) {
   });
 }
 
-Authenticator.prototype.setValid = function (reference, isValid) {
+Registrant.prototype.setValid = function (reference, isValid) {
   var self = this;
   return new Promise(function (fulfill, reject) {
     self.registry.create(reference, isValid, {from: self.address}, function(err, data) {
@@ -105,7 +107,7 @@ Authenticator.prototype.setValid = function (reference, isValid) {
   });
 }
 
-Authenticator.prototype.getRecord = function (reference) {
+Registrant.prototype.getRecord = function (reference) {
   var self = this;
   return new Promise(function (fulfill, reject) {
     self.registry.getRecord.call(reference, {from: self.address}, function(err, data) {
@@ -120,4 +122,4 @@ Authenticator.prototype.getRecord = function (reference) {
   });
 }
 
-module.exports = Authenticator;
+module.exports = Registrant;
