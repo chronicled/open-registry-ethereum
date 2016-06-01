@@ -5,94 +5,120 @@ contract Registry {
     address public registrarAddress;
     
     struct Asset {
-        address owner;
-        uint version;
-        string data;
+        address ownerAddress;
+        uint schemaReference;
+        bytes32[] identities;
         bool isValid;
     }
 
-    mapping(bytes32 => uint) public referenceToIndex;
+    mapping(bytes32 => uint) public assetReferences;
+    
     Asset[] public assets;
+    string[] public schemas;
 
-    modifier isAuthenticator(address _authenticator) {
+    modifier isRegistrant(address _registrant) {
         Registrar registrar = Registrar(registrarAddress);
-        if (registrar.isAuthenticator(_authenticator)) {
-            _
-        }
-    }
-
-    modifier isDelegate(address _authenticator, address _delegate) {
-        Registrar registrar = Registrar(registrarAddress);
-        if (registrar.isDelegate(_authenticator, _delegate)) {
-            _
-        }
-    }
-
-    modifier hasPermission(bytes32 _reference) {
-        uint pos = referenceToIndex[_reference];
-        if (pos == 0) {
-            throw;
-        }
-        address owner = assets[pos].owner;
-        
-        bool hasPermission = false;
-        if (msg.sender == owner){
-            hasPermission = true;
-        }
-        
-        if (!hasPermission) {
-            Registrar registrar = Registrar(registrarAddress);
-            hasPermission = registrar.isDelegate(owner, msg.sender);
-        }
-        
-        if (hasPermission) {
+        if (registrar.isActiveRegistrant(_registrant)) {
             _
         }
     }
     
-    function Registry(address _registrarAddress) {
-        registrarAddress = _registrarAddress;
+    modifier isCertificationAuthority(address _ca) {
+        Registrar registrar = Registrar(registrarAddress);
+        if (registrar.certificationAuthority() == _ca) {
+            _
+        }
+    }
+    
+    function Registry() {
         assets.length++;
+        schemas.length++;
     }
     
-    function _create(address _owner, string _data, uint _version, bytes32 _reference) internal returns (uint) {
-        if (referenceToIndex[_reference] > 0) {
+    //################# INTERNAL FUNCTIONS
+    
+    
+    function _create(address _owner, uint _schemaVersion, bytes32[] _identities, bytes32 _assetReference) internal returns (uint) {
+        if (assetReferences[_assetReference] > 0) {
             throw;
         }
         uint pos = assets.length++;
-        assets[pos] = Asset(_owner, _version, _data, true);
-        referenceToIndex[_reference] = pos;
+        //todo: validate schema version
+        assets[pos] = Asset(_owner, _schemaVersion, _identities, true);
+        assetReferences[_assetReference] = pos;
         return pos;
     }
     
-    function _setValid(bytes32 _reference, bool _isValid) internal {
-        uint pos = referenceToIndex[_reference];
+    function _setValid(bytes32 _assetReference, bool _isValid) internal {
+        uint pos = assetReferences[_assetReference];
         if (pos == 0) {
             throw;
         }
         assets[pos].isValid = _isValid;
     }
     
-    //batch create
-    
-    function create(string _data, uint _version, bytes32 _reference) isAuthenticator(msg.sender) returns (uint) {
-        return _create(msg.sender, _data, _version, _reference);
-    }
+    //################# PUBLIC FUNCTIONS
 
-    function createFor(string _data, uint _version, bytes32 _reference, address _owner) isDelegate(_owner, msg.sender) {
-        _create(_owner, _data, _version, _reference);
+    function configure(address _registrarAddress) {
+        if (registrarAddress != 0x0) {
+            throw;
+        }
+        registrarAddress = _registrarAddress;
     }
     
-    function setValid(bytes32 _reference, bool _isValid) hasPermission(_reference) returns (bool) {
+    //batch create: open question: how to deal with array of dynamic types?
+    function createMany(uint[] _schemaVersion, uint8[] _identityLength, bytes32[] _identities, bytes32[] _reference) isRegistrant(msg.sender) returns (uint, uint) {
+        uint startPosition = assets.length;
+        uint identityPosition = 0;
+        for (uint i = 0; i < _schemaVersion.length; i++) {
+            uint8 length = _identityLength[i];
+            bytes32[] memory ids = new bytes32[](length);
+            for (uint j = 0; j < length; j++) {
+                ids[j] = _identities[identityPosition+j];
+            }
+            identityPosition += length;
+            _create(msg.sender, _schemaVersion[i], ids, _reference[i]);
+        }
+        return (startPosition, startPosition + _schemaVersion.length);
+    }
+    
+    function create(uint _schemaVersion, bytes32[] _identities, bytes32 _reference) isRegistrant(msg.sender) returns (uint) {
+        return _create(msg.sender, _schemaVersion, _identities, _reference);
+    }
+    
+    function linkAssetReference(uint _pos, bytes32 _assetReference) isRegistrant(msg.sender) returns (bool) {
+        if (_pos > assets.length || assetReferences[_assetReference] > 0) {
+            throw;
+        }
+        Asset asset = assets[_pos];
+        if (assets[_pos].ownerAddress != msg.sender) {
+            throw;
+        }
+        assetReferences[_assetReference] = _pos;
+        return true;
+    }
+    
+    function setValid(bytes32 _reference, bool _isValid) isRegistrant(msg.sender) returns (bool) {
         _setValid(_reference, _isValid);
+        //Open question: what if we want to update the record for an item? we can not simply set it inValid, and create a new one, because the references are already taken
     }
     
-    function getRecord(bytes32 _reference) constant returns (uint, string) {
-        uint pos = referenceToIndex[_reference];
+    function addSchema(string _schema) isCertificationAuthority(msg.sender) returns (uint) {
+        uint pos = schemas.length++;
+        schemas[pos] = _schema;
+        return pos;
+    }
+    
+    //################# CONSTANT FUNCTIONS
+    
+    
+    function getAsset(bytes32 _assetReference) constant returns (string, bytes32[], bool) {
+        uint pos = assetReferences[_assetReference];
         if (pos == 0) {
             throw;
         }
-        return (assets[pos].version, assets[pos].data);
+        Asset asset = assets[pos];
+        return (schemas[asset.schemaReference], asset.identities, asset.isValid);
     }
     
 }
