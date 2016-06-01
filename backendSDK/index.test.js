@@ -61,7 +61,7 @@ describe('registrant sdk', function() {
     var contract = { getAsset: { call: function() {} } };
     sinon.stub(contract.getAsset, 'call').yields(null, [
       proto,
-      ['0x0a050a03757269'],
+      ['0x0a050a0375726900000000000000000000000000000000000000000000000000'],
       true
     ]);
 

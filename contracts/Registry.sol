@@ -38,13 +38,13 @@ contract Registry {
     //################# INTERNAL FUNCTIONS
     
     
-    function _create(address _owner, uint _schemaVersion, bytes32[] _identities, bytes32 _assetReference) internal returns (uint) {
+    function _create(address _owner, uint _schemaIndex, bytes32[] _identities, bytes32 _assetReference) internal returns (uint) {
         if (assetReferences[_assetReference] > 0) {
             throw;
         }
         uint pos = assets.length++;
         //todo: validate schema version
-        assets[pos] = Asset(_owner, _schemaVersion, _identities, true);
+        assets[pos] = Asset(_owner, _schemaIndex, _identities, true);
         assetReferences[_assetReference] = pos;
         return pos;
     }
@@ -67,23 +67,23 @@ contract Registry {
     }
     
     //batch create: open question: how to deal with array of dynamic types?
-    function createMany(uint[] _schemaVersion, uint8[] _identityLength, bytes32[] _identities, bytes32[] _reference) isRegistrant(msg.sender) returns (uint, uint) {
+    function createMany(uint[] _schemaIndex, uint8[] _identityLength, bytes32[] _identities, bytes32[] _reference) isRegistrant(msg.sender) returns (uint, uint) {
         uint startPosition = assets.length;
         uint identityPosition = 0;
-        for (uint i = 0; i < _schemaVersion.length; i++) {
+        for (uint i = 0; i < _schemaIndex.length; i++) {
             uint8 length = _identityLength[i];
             bytes32[] memory ids = new bytes32[](length);
             for (uint j = 0; j < length; j++) {
                 ids[j] = _identities[identityPosition+j];
             }
             identityPosition += length;
-            _create(msg.sender, _schemaVersion[i], ids, _reference[i]);
+            _create(msg.sender, _schemaIndex[i], ids, _reference[i]);
         }
-        return (startPosition, startPosition + _schemaVersion.length);
+        return (startPosition, startPosition + _schemaIndex.length);
     }
     
-    function create(uint _schemaVersion, bytes32[] _identities, bytes32 _reference) isRegistrant(msg.sender) returns (uint) {
-        return _create(msg.sender, _schemaVersion, _identities, _reference);
+    function create(uint _schemaIndex, bytes32[] _identities, bytes32 _reference) isRegistrant(msg.sender) returns (uint) {
+        return _create(msg.sender, _schemaIndex, _identities, _reference);
     }
     
     function linkAssetReference(uint _pos, bytes32 _assetReference) isRegistrant(msg.sender) returns (bool) {

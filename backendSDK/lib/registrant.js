@@ -6,7 +6,6 @@ function Registrant (contract, addr, web3) {
   this.web3 = web3;
 }
 
-
 //should use buffer to handle this
 Registrant.prototype.slice = function (bytes) {
   bytes = bytes.replace('0x','');
@@ -28,26 +27,23 @@ Registrant.prototype.merge = function (bytes32Array) {
   return merged;
 }
 
-Registrant.prototype.create = function (data, version, reference) {
+Registrant.prototype.create = function (identities, schemaIndex, reference) {
   var self = this;
   return new Promise(function (fulfill, reject) {
-    self.registry.create(data, version, reference, {from: self.address}, function(err, data) {
-      if (err) {
-        reject(err);
+    self.registry.schemas.call(schemaIndex, function(error, proto) {
+      if (error) {
+        reject(error);
       }
-      fulfill(data);
-    });
-  });
-}
-
-Registrant.prototype.setValid = function (reference, isValid) {
-  var self = this;
-  return new Promise(function (fulfill, reject) {
-    self.registry.create(reference, isValid, {from: self.address}, function(err, data) {
-      if (err) {
-        reject(err);
-      }
-      fulfill(data);
+      var builder = ProtoBuf.loadJson(ProtoBuf.DotProto.Parser.parse(proto));
+      var Identities = builder.build("Identities");
+      var ids = new Identities(identities);
+      var slices = self.slice(ids.encodeHex());
+      self.registry.create(schemaIndex, slices, reference, {from: self.address}, function(err, data) {
+        if (err) {
+          reject(err);
+        }
+        fulfill(data);
+      });
     });
   });
 }
@@ -55,7 +51,7 @@ Registrant.prototype.setValid = function (reference, isValid) {
 Registrant.prototype.getAsset = function (reference) {
   var self = this;
   return new Promise(function (fulfill, reject) {
-    self.registry.getAsset.call(reference, {from: self.address}, function(err, data) {
+    self.registry.getAsset.call(reference, function(err, data) {
       if (err) {
         reject(err);
       }
