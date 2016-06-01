@@ -53,15 +53,16 @@ describe('protobuf test', function() {
   });
 });
 
+var entry = { identities: [ { uri: 'uri' } ], data: null };
 
 describe('registrant sdk', function() {
 
-  it('should parse protobuf according to schema.', function(done) {
+  it('should allow to read asset and parse into object.', function(done) {
 
     var contract = { getAsset: { call: function() {} } };
     sinon.stub(contract.getAsset, 'call').yields(null, [
       proto,
-      ['0x0a050a0375726900000000000000000000000000000000000000000000000000'],
+      ['0x0a050a0375726900000000000000000000000000000000000000000000000000'], // encoded: { identities: [ { uri: 'uri' } ], data: null }
       true
     ]);
 
@@ -69,7 +70,24 @@ describe('registrant sdk', function() {
 
 
     registrant.getAsset('0x1234').then(function(rv) {
-      expect(JSON.stringify(rv)).to.eql(JSON.stringify(Identities.decodeHex('0a050a03757269')));
+      rv = JSON.parse(JSON.stringify(rv));
+      expect(rv).to.eql(entry);
+      done();
+    }).catch(done);
+  });
+
+  it('should allow to create asset that is correctly serialized.', function(done) {
+    //function create(uint _schemaIndex, bytes32[] _identities, bytes32 _reference) isRegistrant(
+    //Registrant.prototype.create = function (schemaIndex, identities, reference) {
+    var contract = { create: function() {} , schemas: { call: function() {} }};
+    sinon.stub(contract, 'create').yields(null, '0x1234');
+    sinon.stub(contract.schemas, 'call').yields(null, proto);
+
+    var registrant = new Registrant(contract);
+
+
+    registrant.create(1, entry, '0x1234').then(function(rv) {
+      expect(contract.create).calledWith(sinon.match.any, ['0x0a050a03757269'], sinon.match.any, sinon.match.any);
       done();
     }).catch(done);
   });

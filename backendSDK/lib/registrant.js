@@ -27,7 +27,7 @@ Registrant.prototype.merge = function (bytes32Array) {
   return merged;
 }
 
-Registrant.prototype.create = function (identities, schemaIndex, reference) {
+Registrant.prototype.create = function (schemaIndex, identities, reference) {
   var self = this;
   return new Promise(function (fulfill, reject) {
     self.registry.schemas.call(schemaIndex, function(error, proto) {
