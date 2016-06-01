@@ -38,5 +38,21 @@ contract('Registry', {reset_state: true}, function(accounts) {
       assert.equal(result[1][0], '0x0012340000000000000000000000000000000000000000000000000000000000');
     }).then(done).catch(done);
   });
-  it('should not be possible to register Asset for unknown schema');
+  it('should prohibit to register Asset for unknown schema');
+  it('should be possible to batch-register Asset', function(done) {
+    var registrar = Registrar.deployed();
+    var registry = Registry.deployed();
+    registrar.add(accounts[0]).then(function() {
+    }).then(function() {
+      return registry.configure(registrar.address);
+    }).then(function() {
+      return registry.addSchema('test');
+    }).then(function() {
+      return registry.createMany([1,1], [2,1], ['0x0012340000000000000000000000000000000000000000000000000000000000','0x0056780000000000000000000000000000000000000000000000000000000000','0x0091230000000000000000000000000000000000000000000000000000000000'], ['0x1234','0x5678']);
+    }).then(function() {
+      return registry.getAsset.call('0x1234');
+    }).then(function(result) {
+      assert.equal(result[1][1], '0x0056780000000000000000000000000000000000000000000000000000000000');
+    }).then(done).catch(done);    
+  });
 });
