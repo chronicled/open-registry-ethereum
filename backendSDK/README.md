@@ -30,11 +30,28 @@ var asset = {
     data: null
 };
 
-registrant.createAsset(asset, 'ref3').then(function(data) {
+registrant.createAsset(asset, 'refX').then(function(data) {
     console.log(data);
 });
 
-registrant.getAsset('ref3').then(function(data) {
+registrant.getAsset('refX').then(function(data) {
     console.log(data);
 });
+```
+## Protobuf Schema used
+
+```
+message Asset {    
+  repeated Identity identities = 1; 
+  optional Data data = 2;           
+}                                   
+                                    
+message Identity {                  
+  required string uri = 1;          
+}                                   
+                                    
+message Data {                      
+  optional string MymeType = 1;     
+  optional string brandName = 2;    
+}
 ```
