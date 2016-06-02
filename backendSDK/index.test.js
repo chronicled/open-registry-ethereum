@@ -66,7 +66,7 @@ describe('registrant sdk', function() {
       true
     ]);
 
-    var registrant = new Registrant(contract);
+    var registrant = new Registrant({ getRegistry: function() {return contract;}, getWeb3: function() {}, getAddress: function() {}});
 
     registrant.getAsset('0x1234').then(function(rv) {
       rv = JSON.parse(JSON.stringify(rv));
@@ -81,9 +81,9 @@ describe('registrant sdk', function() {
     sinon.stub(contract, 'create').yields(null, '0x4321');
     sinon.stub(contract.schemas, 'call').yields(null, proto);
 
-    var registrant = new Registrant(contract);
+    var registrant = new Registrant({ getRegistry: function() {return contract;}, getWeb3: function() {}, getAddress: function() {}});
 
-    registrant.create(1, entry, '0x1234').then(function(rv) {
+    registrant.create(entry, '0x1234').then(function(rv) {
       expect(contract.create).calledWith(sinon.match.any, ['0x0a050a03757269'], sinon.match.any, sinon.match.any);
       expect(rv).to.eql('0x4321');
       done();
@@ -103,9 +103,9 @@ describe('registrant sdk', function() {
     sinon.stub(contract, 'createMany').yields(null, [0, 1]);
     sinon.stub(contract.schemas, 'call').yields(null, proto);
 
-    var registrant = new Registrant(contract);
+    var registrant = new Registrant({ getRegistry: function() {return contract;}, getWeb3: function() {}, getAddress: function() {}});
 
-    registrant.createMany(1, entries).then(function(rv) {
+    registrant.createMany(entries).then(function(rv) {
       expect(contract.createMany).calledWith(sinon.match.any, [1, 1],['0x0a050a03757269', '0x0a050a03757269'], ['0x1234', '0x3456'], sinon.match.any, sinon.match.any);
       expect(rv).to.eql([0, 1]);
       done();

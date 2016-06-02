@@ -13,7 +13,7 @@ const wallet = require('eth-lightwallet');
 const pwDerivedKey = new Uint8Array([215,152,86,175,5,168,43,177,135,97,218,89,136,5,110,93,193,114,94,197,247,212,127,83,200,150,255,124,17,245,91,10]);
 const registryAbi = [{"constant":true,"inputs":[{"name":"_reference","type":"bytes32"}],"name":"getRecord","outputs":[{"name":"","type":"uint256"},{"name":"","type":"string"}],"type":"function"},{"constant":true,"inputs":[],"name":"registrar","outputs":[{"name":"","type":"address"}],"type":"function"},{"constant":true,"inputs":[{"name":"","type":"uint256"}],"name":"records","outputs":[{"name":"owner","type":"address"},{"name":"version","type":"uint256"},{"name":"data","type":"string"},{"name":"isValid","type":"bool"}],"type":"function"},{"constant":false,"inputs":[{"name":"_data","type":"string"},{"name":"_version","type":"uint256"},{"name":"_reference","type":"bytes32"},{"name":"_owner","type":"address"}],"name":"createFor","outputs":[],"type":"function"},{"constant":false,"inputs":[{"name":"_data","type":"string"},{"name":"_version","type":"uint256"},{"name":"_reference","type":"bytes32"}],"name":"create","outputs":[{"name":"","type":"uint256"}],"type":"function"},{"constant":false,"inputs":[{"name":"_reference","type":"bytes32"},{"name":"_isValid","type":"bool"}],"name":"setValid","outputs":[{"name":"","type":"bool"}],"type":"function"},{"constant":true,"inputs":[{"name":"","type":"bytes32"}],"name":"recordIndex","outputs":[{"name":"","type":"uint256"}],"type":"function"},{"inputs":[],"type":"constructor"}];
 
-
+function Provider (secretSeed, rpcUrl) {
   var engine = new ProviderEngine();
   var web3 = new Web3(engine);
   
@@ -63,4 +63,20 @@ const registryAbi = [{"constant":true,"inputs":[{"name":"_reference","type":"byt
   }));
   engine.start();
 
-  this.registry = web3.eth.contract(registryAbi).at(registryAddress);
+  this.web3 = web3;
+  this.address = addr;
+}
+
+Provider.prototype.getRegistry = function (registryAddress) {
+  return self.web3.eth.contract(registryAbi).at(registryAddress);
+}
+
+Provider.prototype.getWeb3 = function () {
+  return self.web3;
+}
+
+Provider.prototype.getAddress = function () {
+  return self.address;
+}
+
+module.exports = Provider;

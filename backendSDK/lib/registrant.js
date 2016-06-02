@@ -1,9 +1,11 @@
 var ProtoBuf = require("protobufjs");
 
-function Registrant (contract, addr, web3) {
-  this.registry = contract;
-  this.address = addr;
-  this.web3 = web3;
+function Registrant (provider, registryAddress) {
+  if (provider) {
+    this.registry = provider.getRegistry(registryAddress);
+    this.address = provider.getAddress();
+    this.web3 = provider.getWeb3();
+  }
 }
 
 //should use buffer to handle this
@@ -27,7 +29,8 @@ Registrant.prototype.merge = function (bytes32Array) {
   return merged;
 }
 
-Registrant.prototype.createMany = function (schemaIndex, list) {
+Registrant.prototype.createMany = function (list) {
+  var schemaIndex = 1;
   var self = this;
   return new Promise(function (fulfill, reject) {
     self.registry.schemas.call(schemaIndex, function(error, proto) {
@@ -61,7 +64,8 @@ Registrant.prototype.createMany = function (schemaIndex, list) {
   });
 }
 
-Registrant.prototype.create = function (schemaIndex, identities, reference) {
+Registrant.prototype.create = function (identities, reference) {
+  var schemaIndex = 1;
   var self = this;
   return new Promise(function (fulfill, reject) {
     self.registry.schemas.call(schemaIndex, function(error, proto) {
