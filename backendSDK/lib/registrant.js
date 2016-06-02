@@ -64,7 +64,7 @@ Registrant.prototype.createMany = function (list) {
   });
 }
 
-Registrant.prototype.create = function (identities, reference) {
+Registrant.prototype.createAsset = function (identities, reference) {
   var schemaIndex = 1;
   var self = this;
   return new Promise(function (fulfill, reject) {
