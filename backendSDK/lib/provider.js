@@ -12,6 +12,7 @@ const wallet = require('eth-lightwallet');
 
 const pwDerivedKey = new Uint8Array([215,152,86,175,5,168,43,177,135,97,218,89,136,5,110,93,193,114,94,197,247,212,127,83,200,150,255,124,17,245,91,10]);
 const registryAbi = [{"constant":true,"inputs":[],"name":"registrarAddress","outputs":[{"name":"","type":"address"}],"type":"function"},{"constant":true,"inputs":[{"name":"","type":"uint256"}],"name":"schemas","outputs":[{"name":"","type":"string"}],"type":"function"},{"constant":false,"inputs":[{"name":"_schemaIndex","type":"uint256"},{"name":"_identities","type":"bytes32[]"},{"name":"_reference","type":"bytes32"}],"name":"create","outputs":[{"name":"","type":"uint256"}],"type":"function"},{"constant":true,"inputs":[{"name":"_assetReference","type":"bytes32"}],"name":"getAsset","outputs":[{"name":"","type":"string"},{"name":"","type":"bytes32[]"},{"name":"","type":"bool"}],"type":"function"},{"constant":false,"inputs":[{"name":"_schema","type":"string"}],"name":"addSchema","outputs":[{"name":"","type":"uint256"}],"type":"function"},{"constant":false,"inputs":[{"name":"_pos","type":"uint256"},{"name":"_assetReference","type":"bytes32"}],"name":"linkAssetReference","outputs":[{"name":"","type":"bool"}],"type":"function"},{"constant":false,"inputs":[{"name":"_registrarAddress","type":"address"}],"name":"configure","outputs":[],"type":"function"},{"constant":false,"inputs":[{"name":"_reference","type":"bytes32"},{"name":"_isValid","type":"bool"}],"name":"setValid","outputs":[{"name":"","type":"bool"}],"type":"function"},{"constant":true,"inputs":[{"name":"","type":"bytes32"}],"name":"assetReferences","outputs":[{"name":"","type":"uint256"}],"type":"function"},{"constant":true,"inputs":[{"name":"","type":"uint256"}],"name":"assets","outputs":[{"name":"ownerAddress","type":"address"},{"name":"schemaReference","type":"uint256"},{"name":"isValid","type":"bool"}],"type":"function"},{"inputs":[],"type":"constructor"}];
+const registrarAbi = [{"constant":true,"inputs":[],"name":"getRegistrants","outputs":[{"name":"","type":"address[]"}],"type":"function"},{"constant":false,"inputs":[{"name":"_registrant","type":"address"}],"name":"add","outputs":[],"type":"function"},{"constant":true,"inputs":[{"name":"_registrant","type":"address"}],"name":"isActiveRegistrant","outputs":[{"name":"","type":"bool"}],"type":"function"},{"constant":false,"inputs":[{"name":"_registrant","type":"address"},{"name":"_isActive","type":"bool"}],"name":"setActive","outputs":[],"type":"function"},{"constant":true,"inputs":[{"name":"","type":"address"}],"name":"registrantIndex","outputs":[{"name":"","type":"uint256"}],"type":"function"},{"constant":true,"inputs":[{"name":"","type":"uint256"}],"name":"registrants","outputs":[{"name":"addr","type":"address"},{"name":"isActive","type":"bool"}],"type":"function"},{"constant":true,"inputs":[],"name":"registry","outputs":[{"name":"","type":"address"}],"type":"function"},{"constant":true,"inputs":[],"name":"certificationAuthority","outputs":[{"name":"","type":"address"}],"type":"function"},{"constant":false,"inputs":[{"name":"_ca","type":"address"}],"name":"setNextAuthority","outputs":[],"type":"function"},{"inputs":[],"type":"constructor"}];
 
 function Provider (secretSeed, rpcUrl) {
   var engine = new ProviderEngine();
@@ -69,6 +70,10 @@ function Provider (secretSeed, rpcUrl) {
 
 Provider.prototype.getRegistry = function (registryAddress) {
   return this.web3.eth.contract(registryAbi).at(registryAddress);
+}
+
+Provider.prototype.getRegistrar = function (registrarAddress) {
+  return this.web3.eth.contract(registrarAbi).at(registrarAddress);
 }
 
 Provider.prototype.getWeb3 = function () {

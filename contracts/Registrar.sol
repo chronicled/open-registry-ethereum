@@ -16,8 +16,16 @@ contract Registrar {
         registrants.length++;
     }
 
-    function getRegistrantsSize() constant returns (uint) {
-        return registrants.length - 1;
+    function getRegistrants() constant returns (address[]) {
+        address[] memory rv = new address[](registrants.length);
+        uint counter = 0;
+        for (uint i = 0; i < registrants.length; i++) {
+            if (registrants[i].isActive) {
+                rv[counter] = registrants[i].addr;
+                counter++;
+            }
+        }
+        return rv;
     }
     
     function isActiveRegistrant(address _registrant) constant returns (bool) {
