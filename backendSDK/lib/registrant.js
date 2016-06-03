@@ -1,4 +1,5 @@
 const tools = require('./tools.js');
+var ProtoBuf = require("protobufjs");
 
 function Registrant (provider, registryAddress) {
   if (provider) {
@@ -54,7 +55,7 @@ Registrant.prototype.createAsset = function (identities, reference) {
       var builder = ProtoBuf.loadJson(ProtoBuf.DotProto.Parser.parse(proto));
       var Identities = builder.build("Identities");
       var ids = new Identities(identities);
-      var slices = self.slice(ids.encodeHex());
+      var slices = tools.slice(ids.encodeHex());
       self.registry.create(schemaIndex, slices, reference, {from: self.address}, function(err, data) {
         if (err) {
           reject(err);

@@ -13,9 +13,9 @@ contract('Registrar', {reset_state: true}, function(accounts) {
     }).then(function() {
       return registrar.add(accounts[2]);
     }).then(function() {
-      return registrar.getRegistrantsSize.call();
+      return registrar.getRegistrants.call();
     }).then(function(result) {
-      assert.equal(result.valueOf(), 2);
+      assert.equal(result.length, 3);
     }).then(done).catch(done);
   });
 });

@@ -1,10 +1,10 @@
 # Chronicled Authenticator SDK
 
-This lib can be used on node-backends to write records to Registry contract.
+This lib can be used on node-backend with an unmanaged key (passed programatically).
 
 ## Registrant Usage
 
-As a registrant, i can create new assets and read them back by reference.
+As a registrant, i can write new assets to the blockchain and read them back by reference.
 
 ```js
 //dependencies
@@ -15,7 +15,7 @@ var Provider = require('./lib/provider.js');
 var secretSeed = 'general famous baby ritual flower gift exit admit rice order addict cash';
 var rpcUrl = 'http://52.28.142.166:8555';
 
-var provider = new Provider(secretSeed, rpcUrl);
+var provider = new Provider(rpcUrl, secretSeed);
 
 //setting up sdk with provider and address of contract
 var registryAddress = '0x2f3b8814c136ea5640a5c1da75f666f1565ba4ae';
@@ -39,6 +39,25 @@ registrant.getAsset('refX').then(function(data) {
 });
 ```
 
+## Consumer Usage
+
+As a consumer, i can can read assets from the blockchain and use the public key for verification.
+```js
+//dependencies
+var ConsumerSdk = require('./lib/consumer.js');
+var Provider = require('./lib/provider.js');
+
+//setting up provider for reading
+var provider = new Provider('http://52.28.142.166:8555');
+var registryAddress = '0x2f3b8814c136ea5640a5c1da75f666f1565ba4ae';
+
+var consumer = new ConsumerSdk(provider, registryAddress);
+
+consumer.getAsset('refX').then(function(data) {
+    console.log(data);
+});
+```
+
 ## Certifier Usage
 
 As a certification authority, I can whitelist registrants, blacklist them, and read a list of active registrants back.
@@ -52,7 +71,7 @@ var Provider = require('./lib/provider.js');
 var secretSeed = 'general famous baby ritual flower gift exit admit rice order addict cash';
 var rpcUrl = 'http://52.28.142.166:8555';
 
-var provider = new Provider(secretSeed, rpcUrl);
+var provider = new Provider(rpcUrl, secretSeed);
 
 //setting up sdk with provider and address of contract
 var registrarAddress = '0x3811199c2e19592aa7df1ea96ad8cb9675343557';

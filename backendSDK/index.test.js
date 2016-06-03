@@ -1,5 +1,6 @@
 var expect = require('chai').expect;
 var Registrant = require('./lib/registrant');
+var tools = require('./lib/tools');
 var ProtoBuf = require("protobufjs");
 var sinon = require('sinon');
 require('chai').use(require('sinon-chai'));
@@ -39,7 +40,7 @@ describe('protobuf test', function() {
 
   it('should allow to split protobuf into 32byte parts.', function(done) {
     var registrant = new Registrant();
-    var slices = registrant.slice(total);
+    var slices = tools.slice(total);
     expect(slices[0]).to.eql(slice1);
     expect(slices[1]).to.eql(slice2);
     done();
@@ -47,7 +48,7 @@ describe('protobuf test', function() {
 
   it('should allow to concatenate parts back together', function(done) {
     var registrant = new Registrant();
-    var merged = registrant.merge([slice1, slice2]);
+    var merged = tools.merge([slice1, slice2]);
     expect(merged).to.eql(total);
     done();
   });
@@ -83,7 +84,7 @@ describe('registrant sdk', function() {
 
     var registrant = new Registrant({ getRegistry: function() {return contract;}, getWeb3: function() {}, getAddress: function() {}});
 
-    registrant.create(entry, '0x1234').then(function(rv) {
+    registrant.createAsset(entry, '0x1234').then(function(rv) {
       expect(contract.create).calledWith(sinon.match.any, ['0x0a050a03757269'], sinon.match.any, sinon.match.any);
       expect(rv).to.eql('0x4321');
       done();
