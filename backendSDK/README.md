@@ -53,7 +53,7 @@ var registryAddress = '0x2f3b8814c136ea5640a5c1da75f666f1565ba4ae';
 
 var consumer = new ConsumerSdk(provider, registryAddress);
 
-consumer.getAsset('refX').then(function(data) {
+consumer.getAsset('ref3').then(function(data) {
     console.log(data);
 });
 ```
