@@ -4,13 +4,14 @@ This lib can be used on node-backends to write records to Registry contract.
 
 ## Registrant Usage
 
+As a registrant, i can create new assets and read them back by reference.
+
 ```js
 //dependencies
 var RegistrantSdk = require('./lib/registrant.js');
 var Provider = require('./lib/provider.js');
 
 //setting up provider for reading and writing
-
 var secretSeed = 'general famous baby ritual flower gift exit admit rice order addict cash';
 var rpcUrl = 'http://52.28.142.166:8555';
 
@@ -40,13 +41,14 @@ registrant.getAsset('refX').then(function(data) {
 
 ## Certifier Usage
 
-```
+As a certification authority, I can whitelist registrants, blacklist them, and read a list of active registrants back.
+
+```js
 //dependencies
 var CertifierSdk = require('./lib/certifier.js');
 var Provider = require('./lib/provider.js');
 
 //setting up provider for reading and writing
-
 var secretSeed = 'general famous baby ritual flower gift exit admit rice order addict cash';
 var rpcUrl = 'http://52.28.142.166:8555';
 
@@ -68,7 +70,9 @@ certifier.listActiveRegistrants().then(function(data) {
 
 ```
 
-## Protobuf Schema used
+## Storage Schema
+
+Due to the limitation, that public functions can not receive arrays of dynamicly-sized types, data in the storage of the contract has been sliced into `byte32` records. The content of the arrays is encoded tightly using the a protobuf schema. The schema is stored in the contract, and each Asset record contains a reference to a schema. A schema can look like this:
 
 ```
 message Asset {    
@@ -85,3 +89,27 @@ message Data {
   optional string brandName = 2;    
 }
 ```
+
+### Creating a record
+
+1. receive a javascript object
+
+2. validate object against schema
+
+3. serialize object to bytes using protobuf
+
+4. slize byte-array into 32-byte chunks
+
+5. call contract interface
+
+### Reading a record
+
+1. call contract and receive array of `bytes32`
+
+2. concatanate array
+
+3. read schema from contract
+
+4. parse array using protobuf and validate with schema
+
+5. get javascript object
