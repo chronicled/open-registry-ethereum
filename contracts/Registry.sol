@@ -4,16 +4,16 @@ contract Registry {
     
     address public registrarAddress;
     
-    struct Asset {
+    struct Thing {
         address ownerAddress;
         uint schemaReference;
         bytes32[] identities;
         bool isValid;
     }
 
-    mapping(bytes32 => uint) public assetReferences;
+    mapping(bytes32 => uint) public thingReferences;
     
-    Asset[] public assets;
+    Thing[] public things;
     string[] public schemas;
 
     modifier isRegistrant(address _registrant) {
@@ -31,41 +31,41 @@ contract Registry {
     }
     
     function Registry() {
-        assets.length++;
+        things.length++;
         schemas.length++;
     }
     
     //################# INTERNAL FUNCTIONS
     
     
-    function _create(address _owner, uint _schemaIndex, bytes32[] _identities, bytes32 _assetReference) internal returns (uint) {
-        if (assetReferences[_assetReference] > 0) {
+    function _create(address _owner, uint _schemaIndex, bytes32[] _identities, bytes32 _thingReference) internal returns (uint) {
+        if (thingReferences[_thingReference] > 0) {
             throw;
         }
-        uint pos = assets.length++;
+        uint pos = things.length++;
         //todo: validate schema version
-        assets[pos] = Asset(_owner, _schemaIndex, _identities, true);
-        assetReferences[_assetReference] = pos;
+        things[pos] = Thing(_owner, _schemaIndex, _identities, true);
+        thingReferences[_thingReference] = pos;
         return pos;
     }
     
-    function _setValid(bytes32 _assetReference, bool _isValid) internal {
-        uint pos = assetReferences[_assetReference];
+    function _setValid(bytes32 _thingReference, bool _isValid) internal {
+        uint pos = thingReferences[_thingReference];
         if (pos == 0) {
             throw;
         }
-        assets[pos].isValid = _isValid;
+        things[pos].isValid = _isValid;
     }
     
-    function _linkAssetReference(address _owner, uint _pos, bytes32 _assetReference) internal {
-        if (_pos > assets.length || assetReferences[_assetReference] > 0) {
+    function _linkReference(address _owner, uint _pos, bytes32 _thingReference) internal {
+        if (_pos > things.length || thingReferences[_thingReference] > 0) {
             throw;
         }
-        Asset asset = assets[_pos];
-        if (assets[_pos].ownerAddress != _owner) {
+        Thing thing = things[_pos];
+        if (things[_pos].ownerAddress != _owner) {
             throw;
         }
-        assetReferences[_assetReference] = _pos;
+        thingReferences[_thingReference] = _pos;
     }
     
     //################# PUBLIC FUNCTIONS
@@ -79,7 +79,7 @@ contract Registry {
     
     //batch create: open question: how to deal with array of dynamic types?
     function createMany(uint[] _schemaIndex, uint8[] _identityLength, bytes32[] _identities, bytes32[] _references) isRegistrant(msg.sender) returns (uint, uint) {
-        uint startPosition = assets.length;
+        uint startPosition = things.length;
         uint identityPosition = 0;
         for (uint i = 0; i < _schemaIndex.length; i++) {
             uint8 length = _identityLength[i];
@@ -100,12 +100,12 @@ contract Registry {
     function create(uint _schemaIndex, bytes32[] _identities, bytes32[] _references) isRegistrant(msg.sender) returns (uint) {
         uint pos = _create(msg.sender, _schemaIndex, _identities, _references[0]);
         for (uint i = 1; i < _references.length; i++) {
-            _linkAssetReference(msg.sender, pos, _references[i]);
+            _linkReference(msg.sender, pos, _references[i]);
         }
     }
     
-    function linkAssetReference(uint _pos, bytes32 _assetReference) isRegistrant(msg.sender) {
-        _linkAssetReference(msg.sender, _pos, _assetReference);
+    function linkReference(uint _pos, bytes32 _reference) isRegistrant(msg.sender) {
+        _linkReference(msg.sender, _pos, _reference);
     }
     
     function setValid(bytes32 _reference, bool _isValid) isRegistrant(msg.sender) returns (bool) {
@@ -122,13 +122,13 @@ contract Registry {
     //################# CONSTANT FUNCTIONS
     
     
-    function getAsset(bytes32 _assetReference) constant returns (string, bytes32[], bool) {
-        uint pos = assetReferences[_assetReference];
+    function getThing(bytes32 _thingReference) constant returns (string, bytes32[], bool) {
+        uint pos = thingReferences[_thingReference];
         if (pos == 0) {
             throw;
         }
-        Asset asset = assets[pos];
-        return (schemas[asset.schemaReference], asset.identities, asset.isValid);
+        Thing thing = things[pos];
+        return (schemas[thing.schemaReference], thing.identities, thing.isValid);
     }
     
 }

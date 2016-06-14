@@ -22,7 +22,7 @@ contract('Registry', {reset_state: true}, function(accounts) {
       assert.equal(result, 'test');
     }).then(done).catch(done);
   });
-  it('should be possible to register Asset', function(done) {
+  it('should be possible to register Thing', function(done) {
     var registrar = Registrar.deployed();
     var registry = Registry.deployed();
     registrar.add(accounts[0]).then(function() {
@@ -33,13 +33,13 @@ contract('Registry', {reset_state: true}, function(accounts) {
     }).then(function() {
       return registry.create(1, ['0x0012340000000000000000000000000000000000000000000000000000000000'], ['0x1234']);
     }).then(function() {
-      return registry.getAsset.call('0x1234');
+      return registry.getThing.call('0x1234');
     }).then(function(result) {
       assert.equal(result[1][0], '0x0012340000000000000000000000000000000000000000000000000000000000');
     }).then(done).catch(done);
   });
-  it('should prohibit to register Asset for unknown schema');
-  it('should be possible to batch-register Asset', function(done) {
+  it('should prohibit to register Thing for unknown schema');
+  it('should be possible to batch-register Thing', function(done) {
     var registrar = Registrar.deployed();
     var registry = Registry.deployed();
     registrar.add(accounts[0]).then(function() {
@@ -50,7 +50,7 @@ contract('Registry', {reset_state: true}, function(accounts) {
     }).then(function() {
       return registry.createMany([1,1], [2,1], ['0x0012340000000000000000000000000000000000000000000000000000000000','0x0056780000000000000000000000000000000000000000000000000000000000','0x0091230000000000000000000000000000000000000000000000000000000000'], ['0x1234', '0x5678']);
     }).then(function() {
-      return registry.getAsset.call('0x1234');
+      return registry.getThing.call('0x1234');
     }).then(function(result) {
       assert.equal(result[1][1], '0x0056780000000000000000000000000000000000000000000000000000000000');
     }).then(done).catch(done);    
