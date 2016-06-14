@@ -57,6 +57,17 @@ contract Registry {
         assets[pos].isValid = _isValid;
     }
     
+    function _linkAssetReference(address _owner, uint _pos, bytes32 _assetReference) internal {
+        if (_pos > assets.length || assetReferences[_assetReference] > 0) {
+            throw;
+        }
+        Asset asset = assets[_pos];
+        if (assets[_pos].ownerAddress != _owner) {
+            throw;
+        }
+        assetReferences[_assetReference] = _pos;
+    }
+    
     //################# PUBLIC FUNCTIONS
 
     function configure(address _registrarAddress) {
@@ -67,35 +78,34 @@ contract Registry {
     }
     
     //batch create: open question: how to deal with array of dynamic types?
-    function createMany(uint[] _schemaIndex, uint8[] _identityLength, bytes32[] _identities, bytes32[] _reference) isRegistrant(msg.sender) returns (uint, uint) {
+    function createMany(uint[] _schemaIndex, uint8[] _identityLength, bytes32[] _identities, bytes32[] _references) isRegistrant(msg.sender) returns (uint, uint) {
         uint startPosition = assets.length;
         uint identityPosition = 0;
         for (uint i = 0; i < _schemaIndex.length; i++) {
             uint8 length = _identityLength[i];
             bytes32[] memory ids = new bytes32[](length);
             for (uint j = 0; j < length; j++) {
-                ids[j] = _identities[identityPosition+j];
+                ids[j] = _identities[identityPosition + j];
             }
             identityPosition += length;
-            _create(msg.sender, _schemaIndex[i], ids, _reference[i]);
+            _create(msg.sender, _schemaIndex[i], ids, _references[i]);
+            // TODO: deal with references
+            // for (uint k = 1; k < length; k++) {
+            //     _linkAssetReference(msg.sender, pos, _references[identityPosition + k]);
+            // }
         }
         return (startPosition, startPosition + _schemaIndex.length);
     }
     
-    function create(uint _schemaIndex, bytes32[] _identities, bytes32 _reference) isRegistrant(msg.sender) returns (uint) {
-        return _create(msg.sender, _schemaIndex, _identities, _reference);
+    function create(uint _schemaIndex, bytes32[] _identities, bytes32[] _references) isRegistrant(msg.sender) returns (uint) {
+        uint pos = _create(msg.sender, _schemaIndex, _identities, _references[0]);
+        for (uint i = 1; i < _references.length; i++) {
+            _linkAssetReference(msg.sender, pos, _references[i]);
+        }
     }
     
-    function linkAssetReference(uint _pos, bytes32 _assetReference) isRegistrant(msg.sender) returns (bool) {
-        if (_pos > assets.length || assetReferences[_assetReference] > 0) {
-            throw;
-        }
-        Asset asset = assets[_pos];
-        if (assets[_pos].ownerAddress != msg.sender) {
-            throw;
-        }
-        assetReferences[_assetReference] = _pos;
-        return true;
+    function linkAssetReference(uint _pos, bytes32 _assetReference) isRegistrant(msg.sender) {
+        _linkAssetReference(msg.sender, _pos, _assetReference);
     }
     
     function setValid(bytes32 _reference, bool _isValid) isRegistrant(msg.sender) returns (bool) {
