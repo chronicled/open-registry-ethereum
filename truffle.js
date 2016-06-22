@@ -11,7 +11,9 @@ module.exports = {
   },
   deploy: [
     "Registrar",
-    "Registry"
+    "Registry",
+    "MultiAccess",
+    "MultiAccessTester"
   ],
   rpc: {
     host: "localhost",
