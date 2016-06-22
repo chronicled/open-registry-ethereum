@@ -3,8 +3,14 @@ contract Registrar {
     address public certificationAuthority;
     address public registry;
     
+    event Creation(address indexed registrant, address authority, string reference);
+    event Alternation(address indexed registrant, address authority, bool isActive, string reference);
+     //1: permission denied
+    event Error(uint code);
+    
     struct Registrant {
         address addr;
+        string reference;
         bool isActive;
     }
 
@@ -33,25 +39,32 @@ contract Registrar {
         return (pos > 0 && registrants[pos].isActive);
     }
     
-    function add(address _registrant) {
+    function add(address _registrant, string _reference) returns (bool) {
         if (msg.sender != certificationAuthority || registrantIndex[_registrant] > 0) {
-            throw;
+            Error(1); //permission denied
+            return false;
         }
         uint pos = registrants.length++;
-        registrants[pos] = Registrant(_registrant, true);
+        registrants[pos] = Registrant(_registrant, _reference, true);
         registrantIndex[_registrant] = pos;
+        Creation(_registrant, msg.sender, _reference);
     }
     
-    function setActive(address _registrant, bool _isActive) {
+    function setActive(address _registrant, bool _isActive, string _reference) returns (bool) {
         if (msg.sender != certificationAuthority || registrantIndex[_registrant] == 0) {
-            throw;
+            Error(1); //permission denied
+            return false;
         }
-        registrants[registrantIndex[_registrant]].isActive = _isActive;
+        Registrant registrant = registrants[registrantIndex[_registrant]];
+        registrant.isActive = _isActive;
+        registrant.reference = _reference;
+        Alternation(_registrant, msg.sender, _isActive, _reference);
     }
     
-    function setNextAuthority(address _ca) {
+    function setNextAuthority(address _ca) returns (bool) {
         if (msg.sender != certificationAuthority) {
-            throw;
+            Error(1); //permission denied
+            return false;
         }
         certificationAuthority = _ca;
     }
