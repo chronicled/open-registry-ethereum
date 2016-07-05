@@ -1,6 +1,7 @@
 contract Registrar {
-    
+    // Review: incoming ether will be stuck and unrecoverable.
     address public certificationAuthority;
+    // Review: registry is never used.
     address public registry;
     
     event Creation(address indexed registrant, address authority, string reference);
@@ -48,6 +49,7 @@ contract Registrar {
         registrants[pos] = Registrant(_registrant, _reference, true);
         registrantIndex[_registrant] = pos;
         Creation(_registrant, msg.sender, _reference);
+        // Review: will always return false.
     }
     
     function setActive(address _registrant, bool _isActive, string _reference) returns (bool) {
@@ -59,6 +61,7 @@ contract Registrar {
         registrant.isActive = _isActive;
         registrant.reference = _reference;
         Alternation(_registrant, msg.sender, _isActive, _reference);
+        // Review: will always return false.
     }
     
     function setNextAuthority(address _ca) returns (bool) {
@@ -67,6 +70,7 @@ contract Registrar {
             return false;
         }
         certificationAuthority = _ca;
+        // Review: will always return false.
     }
     
 }

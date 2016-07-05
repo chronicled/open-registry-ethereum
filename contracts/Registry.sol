@@ -1,10 +1,11 @@
 import "Registrar.sol";
 
 contract Registry {
-    
+    // Review: incoming ether will be stuck and unrecoverable.
     address public registrarAddress;
     
     event Creation(bytes32 indexed identity, address indexed owner, uint position);
+    // Review: Alternation event is never used.
     event Alternation(bytes32 indexed identity, address indexed owner, bool isValid, uint position);
     // 1: conflict, identity already registered
     // 2: not found, identity does not exist
@@ -44,7 +45,8 @@ contract Registry {
     
     //################# INTERNAL FUNCTIONS
     
-    
+    // Review: it is possible to create Things without identities.
+    // Review: it is possible to create Things with empty data.
     function _create(address _owner, uint _schemaIndex, bytes32[] _data, bytes32[] _identities) internal returns (bool) {
         for (uint i = 0; i < _identities.length; i++) {
             if (identities[_identities[i]] > 0) {
@@ -54,6 +56,7 @@ contract Registry {
         }
         uint pos = things.length++;
         //todo: validate schema version
+        // Review: fulfil the above todo.
         things[pos] = Thing(_owner, _schemaIndex, _data, true);
         for (uint k = 0; k < _identities.length; k++) {
             identities[_identities[k]] = pos;
@@ -66,7 +69,9 @@ contract Registry {
     function _create1(address _owner, uint _schemaIndex, bytes32 _data, bytes32[] _identities) internal returns (uint) {
         bytes32[] memory datas = new bytes32[](1);
         datas[0] = _data;
+        // Review: doesn't check the _create result.
         _create(_owner, _schemaIndex, datas, _identities);
+        // Review: should return uint but doesn't return anything.
     }
     
     function _setValid(bytes32 _identity, bool _isValid) internal returns (bool) {
@@ -75,6 +80,7 @@ contract Registry {
             Error(2, _identity);
             return false;
         }
+        // Review: Thing ownership is not checked.
         things[pos].isValid = _isValid;
         return true;
     }
@@ -101,9 +107,12 @@ contract Registry {
             return false;
         }
         registrarAddress = _registrarAddress;
+        // Review: will always return false.
     }
     
     //this function allows entries with _data of 1 times 32bytes only;
+    // Review: user should be aware that if there will be not enough identities transaction will run out of gas.
+    // Review: user should be aware that providing too many identities will result in some of them not being used.
     function createMany(uint _schemaIndex, bytes32[] _data, uint8[] _idLength, bytes32[] _identities) isRegistrant(msg.sender) returns (uint, uint) {
         uint startPosition = things.length;
         uint thingPosition = 0;
@@ -116,6 +125,7 @@ contract Registry {
             thingPosition += length;
             _create1(msg.sender, _schemaIndex, _data[i], ids);
         }
+        // Review: maybe check if there is identities left and throw if so?
         return (startPosition, startPosition + _data.length);
     }
     
@@ -150,12 +160,15 @@ contract Registry {
         return (schemas[thing.schemaReference], thing.data, thing.isValid);
     }
     
+    // Review: will return true in case atleast a single identity found.
     function checkIdentities(bytes32[] _identities) constant returns (bool isFound) {
         isFound = false;
         for (uint k = 0; k < _identities.length; k++) {
             if (identities[_identities[k]] > 0)
             isFound = true;
+            // Review: no need to continue the loop if isFound is already true.
         }
+        // Review: no need to return, isFound already set.
         return isFound;
     }
     
