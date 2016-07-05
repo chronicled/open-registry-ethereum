@@ -1,11 +1,11 @@
 import "Registrar.sol";
 
 contract Registry {
-    // Review: incoming ether will be stuck and unrecoverable.
+    // Review: incoming ether will be stuck and unrecoverable. => added noEther modifier
     address public registrarAddress;
     
     event Creation(bytes32 indexed identity, address indexed owner, uint position);
-    // Review: Alternation event is never used.
+    // Review: Alternation event is never used. => called in linkIdentity
     event Alternation(bytes32 indexed identity, address indexed owner, bool isValid, uint position);
     // 1: conflict, identity already registered
     // 2: not found, identity does not exist
@@ -23,6 +23,11 @@ contract Registry {
     
     Thing[] public things;
     string[] public schemas;
+    
+    modifier noEther() {
+        if (msg.value > 0) throw;
+        _
+    }
 
     modifier isRegistrant(address _registrant) {
         Registrar registrar = Registrar(registrarAddress);
@@ -96,12 +101,13 @@ contract Registry {
             return false;
         }
         identities[_identity] = _pos;
+        Alternation(_identity, _owner, things[_pos].isValid, _pos);
         return true;
     }
     
     //################# PUBLIC FUNCTIONS
 
-    function configure(address _registrarAddress) returns (bool) {
+    function configure(address _registrarAddress) noEther returns (bool) {
         if (registrarAddress != 0x0) {
             Error(3, bytes32(registrarAddress));
             return false;
@@ -113,7 +119,7 @@ contract Registry {
     //this function allows entries with _data of 1 times 32bytes only;
     // Review: user should be aware that if there will be not enough identities transaction will run out of gas.
     // Review: user should be aware that providing too many identities will result in some of them not being used.
-    function createMany(uint _schemaIndex, bytes32[] _data, uint8[] _idLength, bytes32[] _identities) isRegistrant(msg.sender) returns (uint, uint) {
+    function createMany(uint _schemaIndex, bytes32[] _data, uint8[] _idLength, bytes32[] _identities) isRegistrant(msg.sender) noEther returns (uint, uint) {
         uint startPosition = things.length;
         uint thingPosition = 0;
         for (uint i = 0; i < _data.length; i++) {
@@ -129,19 +135,19 @@ contract Registry {
         return (startPosition, startPosition + _data.length);
     }
     
-    function create(uint _schemaIndex, bytes32[] _data, bytes32[] _identities) isRegistrant(msg.sender) returns (bool) {
+    function create(uint _schemaIndex, bytes32[] _data, bytes32[] _identities) isRegistrant(msg.sender) noEther returns (bool) {
         return _create(msg.sender, _schemaIndex, _data, _identities);
     }
     
-    function linkIdentity(uint _pos, bytes32 _identity) isRegistrant(msg.sender) returns (bool) {
+    function linkIdentity(uint _pos, bytes32 _identity) isRegistrant(msg.sender) noEther returns (bool success) {
         return _linkIdentity(msg.sender, _pos, _identity);
     }
     
-    function setValid(bytes32 _identity, bool _isValid) isRegistrant(msg.sender) returns (bool) {
+    function setValid(bytes32 _identity, bool _isValid) isRegistrant(msg.sender) noEther returns (bool) {
         return _setValid(_identity, _isValid);
     }
     
-    function addSchema(string _schema) isCertificationAuthority(msg.sender) returns (uint) {
+    function addSchema(string _schema) isCertificationAuthority(msg.sender) noEther returns (uint) {
         uint pos = schemas.length++;
         schemas[pos] = _schema;
         return pos;
@@ -160,16 +166,19 @@ contract Registry {
         return (schemas[thing.schemaReference], thing.data, thing.isValid);
     }
     
-    // Review: will return true in case atleast a single identity found.
-    function checkIdentities(bytes32[] _identities) constant returns (bool isFound) {
-        isFound = false;
+    // Review: will return true in case atleast a single identity found. => as intended, changed name
+    function checkAnyIdentity(bytes32[] _identities) constant returns (bool) {
         for (uint k = 0; k < _identities.length; k++) {
             if (identities[_identities[k]] > 0)
-            isFound = true;
-            // Review: no need to continue the loop if isFound is already true.
+            return true;
+            // Review: no need to continue the loop if isFound is already true. => used return
         }
-        // Review: no need to return, isFound already set.
-        return isFound;
+        return false;
+        // Review: no need to return, isFound already set. => removed isFound
+    }
+    
+    function () noEther {
+        throw;
     }
     
 }
