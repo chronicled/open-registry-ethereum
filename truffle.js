@@ -16,7 +16,8 @@ module.exports = {
     "MultiAccessTester"
   ],
   rpc: {
-    host: "localhost",
-    port: 8545
+    host: "104.197.248.244",
+    port: 8555,
+    from: "300221400d539cb5d15940c56239e6353287eba2",
   }
 };
