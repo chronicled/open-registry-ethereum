@@ -140,7 +140,7 @@ contract Registry {
         return _setValid(_identity, _isValid);
     }
 
-    function addSchema(bytes32 _name, string _definition) returns (uint) {
+    function addSchema(bytes32 _name, string _definition) isCertificationAuthority(msg.sender) returns (uint) {
         uint pos = schemas.length++;
         schemas[pos] = Schema(_name, _definition);
         return pos;
