@@ -3,6 +3,7 @@ contract('Registry', {reset_state: true}, function(accounts) {
     var registrar = Registrar.deployed();
     var registry = Registry.deployed();
     registry.configure(registrar.address).then(function() {
+    }).then(function() {
       return registry.registrarAddress.call();
     }).then(function(result) {
       assert.equal(result, registrar.address);
@@ -48,11 +49,11 @@ contract('Registry', {reset_state: true}, function(accounts) {
     }).then(function() {
       return registry.addSchema('test');
     }).then(function() {
-      return registry.createMany(1, ['0x0012340000000000000000000000000000000000000000000000000000000000', '0x0091230000000000000000000000000000000000000000000000000000000000'], [2, 1], ['0x1234', '0x4321', '0x5678']);
+      return registry.createMany(1, [1, 1], ['0x0012340000000000000000000000000000000000000000000000000000000000', '0x0091230000000000000000000000000000000000000000000000000000000000'], ['0x1234', '0x4321']);
     }).then(function() {
       return registry.getThing.call('0x4321');
     }).then(function(result) {
-      assert.equal(result[1][0], '0x0012340000000000000000000000000000000000000000000000000000000000');
+      assert.equal(result[1][0], '0x0091230000000000000000000000000000000000000000000000000000000000');
     }).then(done).catch(done);    
   });
 });

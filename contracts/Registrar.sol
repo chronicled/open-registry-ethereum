@@ -1,11 +1,11 @@
 contract Registrar {
-    // Review: incoming ether will be stuck and unrecoverable. => i added no ether modifier
     address public certificationAuthority;
-    // Review: registry is never used. => removed
     
     event Creation(address indexed registrant, address authority, string reference);
     event Alternation(address indexed registrant, address authority, bool isActive, string reference);
-     //1: permission denied
+    
+    // possible error codes
+    //1: permission denied
     event Error(uint code);
     
     struct Registrant {
@@ -63,7 +63,6 @@ contract Registrar {
         registrants[pos] = Registrant(_registrant, _reference, true);
         registrantIndex[_registrant] = pos;
         Creation(_registrant, msg.sender, _reference);
-        // Review: will always return false. => returned true
         return true;
     }
     
@@ -76,7 +75,6 @@ contract Registrar {
         registrant.isActive = _isActive;
         registrant.reference = _reference;
         Alternation(_registrant, msg.sender, _isActive, _reference);
-        // Review: will always return false. => returned true
         return true;
     }
     
@@ -86,7 +84,6 @@ contract Registrar {
             return false;
         }
         certificationAuthority = _ca;
-        // Review: will always return false. => returned true
         return true;
     }
     
