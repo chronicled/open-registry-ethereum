@@ -12,7 +12,7 @@ contract('Registry', {reset_state: true}, function(accounts) {
   it('should be possible to add schema', function(done) {
     var registrar = Registrar.deployed();
     var registry = Registry.deployed();
-    registrar.add(accounts[0], "").then(function() {
+    registrar.add(accounts[0], "", "", "", "", "").then(function() {
     }).then(function() {
       return registry.configure(registrar.address);
     }).then(function() {
@@ -26,7 +26,7 @@ contract('Registry', {reset_state: true}, function(accounts) {
   it('should be possible to register Thing', function(done) {
     var registrar = Registrar.deployed();
     var registry = Registry.deployed();
-    registrar.add(accounts[0], "").then(function() {
+    registrar.add(accounts[0], "", "", "", "", "").then(function() {
     }).then(function() {
       return registry.configure(registrar.address);
     }).then(function() {
@@ -43,7 +43,7 @@ contract('Registry', {reset_state: true}, function(accounts) {
   it('should be possible to batch-register Thing', function(done) {
     var registrar = Registrar.deployed();
     var registry = Registry.deployed();
-    registrar.add(accounts[0], "").then(function() {
+    registrar.add(accounts[0], "", "", "", "", "").then(function() {
     }).then(function() {
       return registry.configure(registrar.address);
     }).then(function() {

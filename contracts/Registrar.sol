@@ -1,8 +1,8 @@
 contract Registrar {
     address public certificationAuthority;
     
-    event Creation(address indexed registrant, address authority, string reference);
-    event Alternation(address indexed registrant, address authority, bool isActive, string reference);
+    event Creation(address indexed registrant, address authority, string  name, string contact, string legalName, string legalAddress, bool active);
+    event Alternation(address indexed registrant, address authority, string name, string contact, string legalName, string legalAddress, bool active);
     
     // possible error codes
     //1: permission denied
@@ -10,8 +10,12 @@ contract Registrar {
     
     struct Registrant {
         address addr;
-        string reference;
-        bool isActive;
+        string name;
+        string description;
+        string contact;
+        string legalName;
+        string legalAddress;
+        bool active;
     }
 
     mapping(address => uint) public registrantIndex;
@@ -28,22 +32,9 @@ contract Registrar {
     }
 
     function getRegistrants() constant returns (address[]) {
-        //first count how many active ones there are
-        uint counter = 0;
-        for (uint i = 0; i < registrants.length; i++) {
-            if (registrants[i].isActive) {
-                counter++;
-            }
-        }
-
-        //then fill data structure to return
-        address[] memory active = new address[](counter);
-        counter = 0;
-        for (uint j = 0; j < registrants.length; j++) {
-            if (registrants[j].isActive) {
-                active[counter] = registrants[j].addr;
-                counter++;
-            }
+        address[] memory active = new address[](registrants.length-1);
+        for (uint j = 1; j < registrants.length; j++) {
+            active[j-1] = registrants[j].addr;
         }
 
         return active;
@@ -51,30 +42,34 @@ contract Registrar {
     
     function isActiveRegistrant(address _registrant) constant returns (bool) {
         uint pos = registrantIndex[_registrant];
-        return (pos > 0 && registrants[pos].isActive);
+        return (pos > 0 && registrants[pos].active);
     }
     
-    function add(address _registrant, string _reference) noEther returns (bool) {
+    function add(address _registrant, string _name, string _description, string _contact, string _legalName, string _legalAddress) noEther returns (bool) {
         if (msg.sender != certificationAuthority || registrantIndex[_registrant] > 0) {
             Error(1); //permission denied
             return false;
         }
         uint pos = registrants.length++;
-        registrants[pos] = Registrant(_registrant, _reference, true);
+        registrants[pos] = Registrant(_registrant, _name, _description, _contact, _legalName, _legalAddress, true);
         registrantIndex[_registrant] = pos;
-        Creation(_registrant, msg.sender, _reference);
+        Creation(_registrant, msg.sender, _name, _contact, _legalName, _legalAddress, true);
         return true;
     }
     
-    function setActive(address _registrant, bool _isActive, string _reference) noEther returns (bool) {
+    function edit(address _registrant, string _name, string _description, string _contact, string _legalName, string _legalAddress, bool _active) noEther returns (bool) {
         if (msg.sender != certificationAuthority || registrantIndex[_registrant] == 0) {
             Error(1); //permission denied
             return false;
         }
         Registrant registrant = registrants[registrantIndex[_registrant]];
-        registrant.isActive = _isActive;
-        registrant.reference = _reference;
-        Alternation(_registrant, msg.sender, _isActive, _reference);
+        registrant.name = _name;
+        registrant.description = _description;
+        registrant.contact = _contact;
+        registrant.legalName = _legalName;
+        registrant.legalAddress = _legalAddress;
+        registrant.active = _active;
+        Alternation(_registrant, msg.sender, _name, _contact, _legalName, _legalAddress, _active);
         return true;
     }
     
