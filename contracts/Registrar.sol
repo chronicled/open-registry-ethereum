@@ -23,15 +23,25 @@ contract Registrar {
     }
 
     function getRegistrants() constant returns (address[]) {
-        address[] memory rv = new address[](registrants.length);
+        //first count how many active ones there are
         uint counter = 0;
         for (uint i = 0; i < registrants.length; i++) {
             if (registrants[i].isActive) {
-                rv[counter] = registrants[i].addr;
                 counter++;
             }
         }
-        return rv;
+
+        //then fill data structure to return
+        address[] memory active = new address[](counter);
+        counter = 0;
+        for (uint j = 0; j < registrants.length; j++) {
+            if (registrants[j].isActive) {
+                active[counter] = registrants[j].addr;
+                counter++;
+            }
+        }
+
+        return active;
     }
     
     function isActiveRegistrant(address _registrant) constant returns (bool) {

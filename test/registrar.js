@@ -15,7 +15,22 @@ contract('Registrar', {reset_state: true}, function(accounts) {
     }).then(function() {
       return registrar.getRegistrants.call();
     }).then(function(result) {
-      assert.equal(result.length, 3);
+      assert.equal(result.length, 2);
+    }).then(done).catch(done);
+  });
+  it('should allow to disable registrants');
+
+  it('should allow to get list of active registrants', function(done) {
+    var registrar = Registrar.deployed();
+    registrar.add(accounts[1], "").then(function() {
+    }).then(function() {
+      return registrar.add(accounts[2], "");
+    }).then(function() {
+      return registrar.setActive(accounts[2], false, "");
+    }).then(function() {
+      return registrar.getRegistrants.call();
+    }).then(function(result) {
+      assert.equal(result.length, 1);
     }).then(done).catch(done);
   });
 });
