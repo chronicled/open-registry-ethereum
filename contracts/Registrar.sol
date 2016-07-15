@@ -55,7 +55,7 @@ contract Registrar {
         registrants.length++;
     }
 
-    function getRegistrant(address _registrant) constant returns (address, string, string, string, string, string, bool) {
+    function getRegistrant(address _registrant) isRegistrant(_registrant) constant returns (address, string, string, string, string, string, bool) {
         Registrant registrant = registrants[registrantIndex[_registrant]];
         return (registrant.addr, registrant.name, registrant.description, registrant.contact, registrant.legalName, registrant.legalAddress, registrant.active);
     }
@@ -74,11 +74,7 @@ contract Registrar {
         return (pos > 0 && registrants[pos].active);
     }
     
-    function add(address _registrant, string _name, string _description, string _contact, string _legalName, string _legalAddress)
-    noEther
-    isCA
-    isntRegistrant(_registrant)
-    returns (bool) {
+    function add(address _registrant, string _name, string _description, string _contact, string _legalName, string _legalAddress) noEther isCA isntRegistrant(_registrant) returns (bool) {
         uint pos = registrants.length++;
         registrants[pos] = Registrant(_registrant, _name, _description, _contact, _legalName, _legalAddress, true);
         registrantIndex[_registrant] = pos;
@@ -86,11 +82,7 @@ contract Registrar {
         return true;
     }
     
-    function edit(address _registrant, string _name, string _description, string _contact, string _legalName, string _legalAddress, bool _active)
-    noEther
-    isCA
-    isRegistrant(_registrant)
-    returns (bool) {
+    function edit(address _registrant, string _name, string _description, string _contact, string _legalName, string _legalAddress, bool _active) noEther isCA isRegistrant(_registrant) returns (bool) {
         Registrant registrant = registrants[registrantIndex[_registrant]];
         registrant.name = _name;
         registrant.description = _description;
@@ -102,10 +94,7 @@ contract Registrar {
         return true;
     }
     
-    function setNextAuthority(address _ca)
-    noEther
-    isCA
-    returns (bool) {
+    function setNextAuthority(address _ca) noEther isCA returns (bool) {
         certificationAuthority = _ca;
         return true;
     }
