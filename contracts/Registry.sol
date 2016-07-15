@@ -5,12 +5,12 @@ contract Registry {
 
     event Creation(bytes32 indexed identity, address indexed owner, uint position);
     event Alternation(bytes32 indexed identity, address indexed owner, bool isValid, uint position);
-    // 1: conflict, identity already registered
+    // 1: conflict, identity already registered with another thing
     // 2: not found, identity does not exist
     // 3: unauthorzied, modification only by owner
     // 4: unknown schema
     // 5: bad request, at least one identity needed
-    // 5: bad request, at least one data needed
+    // 6: bad request, at least one data needed
     event Error(uint code, bytes32 reference);
 
     struct Thing {
@@ -50,8 +50,14 @@ contract Registry {
     }
 
     //################# INTERNAL FUNCTIONS
+    
 
-    function _create(address _owner, uint _schemaIndex, bytes32[] _data, bytes32[] _identities) internal returns (bool) {
+    function _create(address _caller, uint _schemaIndex, bytes32[] _data, bytes32[] _identities) internal returns (bool) {
+        uint pos = things.length++;
+        return _update(_caller, pos, _schemaIndex, _data, _identities);
+    }
+
+    function _update(address _caller, uint _pos, uint _schemaIndex, bytes32[] _data, bytes32[] _identities) internal returns (bool) {
         if (_schemaIndex > schemas.length) {
             Error(4, _identities[0]);
             return false;
@@ -64,17 +70,23 @@ contract Registry {
             Error(6, 0);
             return false;
         }
+        if (things[_pos].ownerAddress != 0x0 && things[_pos].ownerAddress != _caller) {
+            Error(3, _identities[0]);
+            return false;
+        }
         for (uint i = 0; i < _identities.length; i++) {
-            if (identities[_identities[i]] > 0) {
+            uint previous = identities[_identities[i]];
+            if (previous > 0 && previous != _pos) {
                 Error(1, _identities[i]);
                 return false;
             }
         }
-        uint pos = things.length++;
-        things[pos] = Thing(_owner, _schemaIndex, _data, true);
+        things[_pos] = Thing(_caller, _schemaIndex, _data, true);
         for (uint k = 0; k < _identities.length; k++) {
-            identities[_identities[k]] = pos;
-            Creation(_identities[k], _owner, pos);
+            if (identities[_identities[k]] == 0) {
+                identities[_identities[k]] = _pos;
+                Creation(_identities[k], _caller, _pos);
+            }
         }
         return true;
     }
@@ -111,6 +123,7 @@ contract Registry {
 
     //################# PUBLIC FUNCTIONS
 
+
     function configure(address _registrarAddress) noEther returns (bool) {
         if (registrarAddress != 0x0) {
             Error(3, bytes32(registrarAddress));
@@ -122,6 +135,10 @@ contract Registry {
 
     function create(uint _schemaIndex, bytes32[] _data, bytes32[] _identities) isRegistrant(msg.sender) noEther returns (bool) {
         return _create(msg.sender, _schemaIndex, _data, _identities);
+    }
+
+    function update(uint _pos, uint _schemaIndex, bytes32[] _data, bytes32[] _identities) isRegistrant(msg.sender) noEther returns (bool) {
+        return _update(msg.sender, _pos, _schemaIndex, _data, _identities);
     }
 
     //this function allows entries with _identities of 1 times 32bytes only; others have to be added through linkIdentity later
@@ -160,6 +177,7 @@ contract Registry {
         schemas[pos] = _schema;
         return pos;
     }
+
 
     //################# CONSTANT FUNCTIONS
 
