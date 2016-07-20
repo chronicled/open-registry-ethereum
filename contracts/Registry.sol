@@ -5,27 +5,27 @@ contract Registry {
 
     /**
     * Creation event that gets triggered when a thing is created.
-    * @event
-    * @param {bytes32} identity - The identity of the thing.
-    * @param {address} owner - The owner address.
-    * @param {uint} position - The position of the thing in the array.
+    * event
+    * @param identity - The identity of the thing.
+    * @param owner - The owner address.
+    * @param position - The position of the thing in the array.
     */
     event Creation(bytes32 indexed identity, address indexed owner, uint position);
 
     /**
     * Update event that gets triggered when a thing is updated.
-    * @event
-    * @param {bytes32} identity - The identity of the thing.
-    * @param {address} owner - The owner address.
-    * @param {bool} isValid - The validity of the thing.
-    * @param {uint} position - The position of the thing in the array.
+    * event
+    * @param identity - The identity of the thing.
+    * @param owner - The owner address.
+    * @param isValid - The validity of the thing.
+    * @param position - The position of the thing in the array.
     */
     event Update(bytes32 indexed identity, address indexed owner, bool isValid, uint position);
 
     /**
     * Error event.
-    * @event
-    * @param {uint} code - The error code.
+    * event
+    * @param code - The error code.
     * 1: conflict, identity already registered with another thing.
     * 2: not found, identity does not exist.
     * 3: unauthorzied, modification only by owner.
@@ -49,7 +49,7 @@ contract Registry {
 
     /**
     * Function cant have ether.
-    * @modifier
+    * modifier
     */
     modifier noEther() {
         if (msg.value > 0) throw;
@@ -58,8 +58,8 @@ contract Registry {
 
     /**
     * Allow only registrants to exec the function.
-    * @modifier
-    * @param {address} _registrant - The registrant address.
+    * modifier
+    * @param _registrant - The registrant address.
     */
     modifier isRegistrant(address _registrant) {
         Registrar registrar = Registrar(registrarAddress);
@@ -70,8 +70,8 @@ contract Registry {
 
     /**
     * Allow only CA to exec the function.
-    * @modifier
-    * @param {address} _ca - The CA address.
+    * modifier
+    * @param _ca - The CA address.
     */
     modifier isCertificationAuthority(address _ca) {
         Registrar registrar = Registrar(registrarAddress);
@@ -82,7 +82,7 @@ contract Registry {
 
     /**
     * Construct registry with and starting schema and things lenght of one.
-    * @constructor
+    * constructor
     */
     function Registry() {
         things.length++;
@@ -91,11 +91,11 @@ contract Registry {
 
     /**
     * Create a new thing on things array.
-    * @internal_function
-    * @param {address} _ca - The caller of the function.
-    * @param {uint} _schemaIndex - The schema index of the schema to parse the thing.
-    * @param {bytes32[]} _data - The data array.
-    * @param {bytes32[]} _identities - The identities array.
+    * internalfunction
+    * @param _caller - The caller of the function.
+    * @param _schemaIndex - The schema index of the schema to parse the thing.
+    * @param _data - The data array.
+    * @param _identities - The identities array.
     */
     function _create(address _caller, uint _schemaIndex, bytes32[] _data, bytes32[] _identities) internal returns (bool) {
         uint pos = things.length++;
@@ -108,11 +108,12 @@ contract Registry {
 
     /**
     * Update an existing thing on things array.
-    * @internal_function
-    * @param {address} _ca - The caller of the function.
-    * @param {uint} _schemaIndex - The schema index of the schema to parse the thing.
-    * @param {bytes32[]} _data - The data array.
-    * @param {bytes32[]} _identities - The identities array.
+    * internalfunction
+    * @param _caller - The caller of the function.
+    * @param _pos - The position of the thing in the array.
+    * @param _schemaIndex - The schema index of the schema to parse the thing.
+    * @param _data - The data array.
+    * @param _identities - The identities array.
     */
     function _update(address _caller, uint _pos, uint _schemaIndex, bytes32[] _data, bytes32[] _identities) internal returns (bool) {
         if (_schemaIndex > schemas.length) {
@@ -150,10 +151,10 @@ contract Registry {
 
     /**
     * Set a thing as valid.
-    * @internal_function
-    * @param {address} _ca - The caller of the function.
-    * @param {bytes32[]} _identities - The identities array.
-    * @param {bool} _isValid - The validity of the thing.
+    * internalfunction
+    * @param _caller - The caller of the function.
+    * @param _identity - The identities array.
+    * @param _isValid - The validity of the thing.
     */
     function _setValid(address _caller, bytes32 _identity, bool _isValid) internal returns (bool) {
         uint pos = identities[_identity];
@@ -172,10 +173,10 @@ contract Registry {
 
     /**
     * Set a thing as valid.
-    * @internal_function
-    * @param {address} _ca - The caller of the function.
-    * @param {bytes32[]} _identities - The identities array.
-    * @param {bool} _isValid - The validity of the thing.
+    * internalfunction
+    * @param _caller - The caller of the function.
+    * @param _pos - The position of the thing in teh array.
+    * @param _identity - The identity of the thing.
     */
     function _linkIdentity(address _caller, uint _pos, bytes32 _identity) internal returns (bool) {
         if (_pos > things.length || identities[_identity] > 0) {
@@ -196,8 +197,8 @@ contract Registry {
 
     /**
     * Set the registrar address for the contract, (This function can be called only once).
-    * @public_function
-    * @param {address} _registrarAddress - The registrar address.
+    * public_function
+    * @param _registrarAddress - The registrar address.
     */
     function configure(address _registrarAddress) noEther returns (bool) {
         if (registrarAddress != 0x0) {
@@ -210,10 +211,10 @@ contract Registry {
 
     /**
     * Create a new thing on things array, only registrants allowed.
-    * @public_function
-    * @param {uint} _schemaIndex - The schema index of the schema to parse the thing.
-    * @param {bytes32[]} _data - The data array.
-    * @param {bytes32[]} _identities - The identities array.
+    * public_function
+    * @param _schemaIndex - The schema index of the schema to parse the thing.
+    * @param _data - The data array.
+    * @param _identities - The identities array.
     */
     function create(uint _schemaIndex, bytes32[] _data, bytes32[] _identities) isRegistrant(msg.sender) noEther returns (bool) {
         return _create(msg.sender, _schemaIndex, _data, _identities);
@@ -221,11 +222,11 @@ contract Registry {
 
     /**
     * Update a new thing on things array, only registrants allowed.
-    * @public_function
-    * @param {uint} _pos - The position of the thing in the array.
-    * @param {uint} _schemaIndex - The schema index of the schema to parse the thing.
-    * @param {bytes32[]} _data - The data array.
-    * @param {bytes32[]} _identities - The identities array.
+    * public_function
+    * @param _pos - The position of the thing in the array.
+    * @param _schemaIndex - The schema index of the schema to parse the thing.
+    * @param _data - The data array.
+    * @param _identities - The identities array.
     */
     function update(uint _pos, uint _schemaIndex, bytes32[] _data, bytes32[] _identities) isRegistrant(msg.sender) noEther returns (bool) {
         return _update(msg.sender, _pos, _schemaIndex, _data, _identities);
@@ -235,12 +236,11 @@ contract Registry {
     * Allows entries with _identities of 1 times 32bytes only; others have to be added through linkIdentity later, only registrants allowed.
     * Review: user should be aware that if there will be not enough identities transaction will run out of gas.
     * Review: user should be aware that providing too many identities will result in some of them not being used.
-    * @public_function
-    * @param {address} _ca - The caller of the function.
-    * @param {uint} _schemaIndex - The schema index of the schema to parse the thing.
-    * @param {uint8[]} _dataLength - The data lenght of every thing to add.
-    * @param {bytes32[]} _data - The data array.
-    * @param {bytes32[]} _identities - The identities array.
+    * public_function
+    * @param _schemaIndex - The schema index of the schema to parse the thing.
+    * @param _dataLength - The data lenght of every thing to add.
+    * @param _data - The data array.
+    * @param _identities - The identities array.
     */
     function createMany(uint _schemaIndex, uint8[] _dataLength, bytes32[] _data, bytes32[] _identities) isRegistrant(msg.sender) noEther returns (bool) {
         uint thingPosition = 0;
@@ -264,9 +264,9 @@ contract Registry {
 
     /**
     * Link new identity to a thing, only registrants allowed.
-    * @public_function
-    * @param {uint} _pos - The index position of the thing.
-    * @param {bytes32} _identity - The identity to link.
+    * public_function
+    * @param _pos - The index position of the thing.
+    * @param _identity - The identity to link.
     */
     function linkIdentity(uint _pos, bytes32 _identity) isRegistrant(msg.sender) noEther returns (bool success) {
         return _linkIdentity(msg.sender, _pos, _identity);
@@ -274,9 +274,9 @@ contract Registry {
 
     /**
     * Set validity of a thing, only registrants allowed.
-    * @public_function
-    * @param {bytes32} _identity - The identity to change.
-    * @param {bool} _isValid - The new validity of the thing.
+    * public_function
+    * @param _identity - The identity to change.
+    * @param _isValid - The new validity of the thing.
     */
     function setValid(bytes32 _identity, bool _isValid) isRegistrant(msg.sender) noEther returns (bool) {
         return _setValid(msg.sender, _identity, _isValid);
@@ -284,8 +284,8 @@ contract Registry {
 
     /**
     * Add a new schema, only CA allowed.
-    * @public_function
-    * @param {string} _schema - New schema string to add.
+    * public_function
+    * @param _schema - New schema string to add.
     * The string should use ;#; characters as seprators between name, description and definition, example:
     * schameName + ';#;' + schemaDescription + ";#;" + schemaDefinition
     */
@@ -297,8 +297,8 @@ contract Registry {
 
     /**
     * Geth a thing data, schema and validity.
-    * @constant_function
-    * @param {bytes32[]} _identity - identity of the thing.
+    * constant_function
+    * @param _identity - identity of the thing.
     */
     function getThing(bytes32 _identity) constant returns (string, bytes32[], bool) {
         uint pos = identities[_identity];
@@ -312,8 +312,8 @@ contract Registry {
 
     /**
     * Check the validity of an identity.
-    * @constant_function
-    * @param {bytes32[]} _identities - identities to check.
+    * constant_function
+    * @param _identities - identities to check.
     */
     function checkAnyIdentity(bytes32[] _identities) constant returns (bool) {
         for (uint k = 0; k < _identities.length; k++) {

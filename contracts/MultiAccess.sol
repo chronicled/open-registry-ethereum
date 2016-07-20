@@ -4,47 +4,47 @@ contract MultiAccess {
 
     /**
     * Confirmation event.
-    * @event
-    * @param {address} owner - The owner address.
-    * @param {bytes32} operation - The operation name.
-    * @param {bool} completed - If teh operation is completed or not.
+    * event
+    * @param owner - The owner address.
+    * @param operation - The operation name.
+    * @param completed - If teh operation is completed or not.
     */
     event Confirmation(address indexed owner, bytes32 indexed operation, bool completed);
 
     /**
     * Revoke event.
-    * @event
-    * @param {address} owner - The owner address.
-    * @param {bytes32} operation - The operation name.
+    * event
+    * @param owner - The owner address.
+    * @param operation - The operation name.
     */
     event Revoke(address owner, bytes32 operation);
 
     /**
     * Owner change event.
-    * @event
-    * @param {address} owner - The old owner address.
-    * @param {address} newOwner - The new owner address.
+    * event
+    * @param oldOwner - The old owner address.
+    * @param newOwner - The new owner address.
     */
     event OwnerChanged(address oldOwner, address newOwner);
 
     /**
     * Owner addedd event.
-    * @event
-    * @param {address} newOwner - The new owner address.
+    * event
+    * @param newOwner - The new owner address.
     */
     event OwnerAdded(address newOwner);
 
     /**
     * Owner removed event.
-    * @event
-    * @param {address} oldOwner - The old owner address.
+    * event
+    * @param oldOwner - The old owner address.
     */
     event OwnerRemoved(address oldOwner);
 
     /**
     * Requirement change event.
-    * @event
-    * @param {uint} newRequirement - The uint of the new requirement.
+    * event
+    * @param newRequirement - The uint of the new requirement.
     */
     event RequirementChanged(uint newRequirement);
 
@@ -64,7 +64,7 @@ contract MultiAccess {
 
     /**
     * Allow only the owner on msg.sender to exec the function.
-    * @modifier
+    * modifier
     */
     modifier onlyowner {
         if (multiAccessIsOwner(msg.sender)) {
@@ -74,7 +74,7 @@ contract MultiAccess {
 
     /**
     * Allow only if many owners has agreed to exec the function.
-    * @modifier
+    * modifier
     */
     modifier onlymanyowners(bytes32 _operation) {
         if (confirmAndCheck(_operation)) {
@@ -84,7 +84,7 @@ contract MultiAccess {
 
     /**
     * Construct of MultiAccess with the msg.sender and only multiAccessOwner and multiAccessRequired as one.
-    * @constructor
+    * constructor
     */
     function MultiAccess() {
         multiAccessOwners.length = 2;
@@ -96,9 +96,9 @@ contract MultiAccess {
 
     /**
     * Know if an owner has confirmed an operation.
-    * @public_function
-    * @param {address} _owner - The caller of the function.
-    * @param {bytes32} _operation - The data array.
+    * public_function
+    * @param _owner - The caller of the function.
+    * @param _operation - The data array.
     */
     function multiAccessHasConfirmed(bytes32 _operation, address _owner) constant returns (bool) {
         uint pos = pendingIndex[_operation];
@@ -115,8 +115,8 @@ contract MultiAccess {
 
     /**
     * Confirm an operation.
-    * @internal_function
-    * @param {bytes32} _operation - The operation name.
+    * internalfunction
+    * @param _operation - The operation name.
     */
     function confirmAndCheck(bytes32 _operation) onlyowner() internal returns (bool) {
         uint index = ownerIndex[msg.sender];
@@ -157,7 +157,7 @@ contract MultiAccess {
 
     /**
     * Remove all the pending operations.
-    * @internal_function
+    * internalfunction
     */
     function clearPending() internal {
         uint length = pending.length;
@@ -169,8 +169,8 @@ contract MultiAccess {
 
     /**
     * Know if an address is an multiAccessOwner.
-    * @public_function
-    * @param {address} _addr - The operation name.
+    * public_function
+    * @param _addr - The operation name.
     */
     function multiAccessIsOwner(address _addr) constant returns (bool) {
         return ownerIndex[_addr] > 0;
@@ -178,8 +178,8 @@ contract MultiAccess {
 
     /**
     * Revoke a vote from an operation.
-    * @public_function
-    * @param {bytes32} _operation -The operation name.
+    * public_function
+    * @param _operation -The operation name.
     */
     function multiAccessRevoke(bytes32 _operation) onlyowner() external {
         uint index = ownerIndex[msg.sender];
@@ -194,9 +194,9 @@ contract MultiAccess {
 
     /**
     * Change the address of one owner.
-    * @external_function
-    * @param {address} _from - The old address.
-    * @param {address} _to - The new address.
+    * external_function
+    * @param _from - The old address.
+    * @param _to - The new address.
     */
     function multiAccessChangeOwner(address _from, address _to) onlymanyowners(sha3(msg.data)) external {
         if (multiAccessIsOwner(_to)) {
@@ -216,8 +216,8 @@ contract MultiAccess {
 
     /**
     * Add a owner.
-    * @external_function
-    * @param {address} _owner - The address to add.
+    * external_function
+    * @param _owner - The address to add.
     */
     function multiAccessAddOwner(address _owner) onlymanyowners(sha3(msg.data)) external {
         if (multiAccessIsOwner(_owner)) {
@@ -231,8 +231,8 @@ contract MultiAccess {
 
     /**
     * Remove a owner.
-    * @external_function
-    * @param {address} _owner - The address to remove.
+    * external_function
+    * @param _owner - The address to remove.
     */
     function multiAccessRemoveOwner(address _owner) onlymanyowners(sha3(msg.data)) external {
         uint index = ownerIndex[_owner];
@@ -255,8 +255,8 @@ contract MultiAccess {
 
     /**
     * Change the requirement.
-    * @external_function
-    * @param {uint} _newRequired - The new amounts of required owners.
+    * external_function
+    * @param _newRequired - The new amounts of required owners.
     */
     function multiAccessChangeRequirement(uint _newRequired) onlymanyowners(sha3(msg.data)) external {
         if (_newRequired == 0 || _newRequired > multiAccessOwners.length-1) {
@@ -269,8 +269,8 @@ contract MultiAccess {
 
     /**
     * Set the recipient.
-    * @public_function
-    * @param {uint} _address - The multiAccessRecipient address.
+    * public_function
+    * @param _address - The multiAccessRecipient address.
     */
     function multiAccessSetRecipient(address _address) onlymanyowners(sha3(msg.data)) returns(bool _success) {
         multiAccessRecipient = _address;

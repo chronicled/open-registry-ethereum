@@ -10,10 +10,10 @@ module.exports = {
     "images/": "images/"
   },
   deploy: [
-    "Registrar",
-    "Registry",
     "MultiAccess",
-    "MultiAccessTester"
+    "MultiAccessTester",
+    "Registrar",
+    "Registry"
   ],
   rpc: {
     host: "localhost",
