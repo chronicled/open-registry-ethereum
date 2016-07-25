@@ -1,54 +1,74 @@
 import "Registrar.sol";
 
 contract Registry {
+    // Address of the Registrar contract which holds all the Registrants
     address public registrarAddress;
 
     /**
     * Creation event that gets triggered when a thing is created.
     * event
-    * @param identity - The identity of the thing.
+    * @param ids - The identity of the thing. Last parameter because it is of dynamic size.
     * @param owner - The owner address.
-    * @param position - The position of the thing in the array.
     */
-    event Creation(bytes32 indexed identity, address indexed owner, uint position);
+    event Created(bytes32[] ids, address indexed owner); // uint indexed owner,
 
     /**
     * Update event that gets triggered when a thing is updated.
     * event
-    * @param identity - The identity of the thing.
+    * @param ids - The identity of the thing.
     * @param owner - The owner address.
     * @param isValid - The validity of the thing.
-    * @param position - The position of the thing in the array.
     */
-    event Update(bytes32 indexed identity, address indexed owner, bool isValid, uint position);
+    event Updated(bytes32[] ids, address indexed owner, bool isValid);
 
     /**
-    * Error event.
+    * Delete event, triggered when Thing is deleted.
+    * event
+    * @param ids - The identity of the thing.
+    * @param owner - The owner address.
+    */
+    event Deleted(bytes32[] ids, address indexed owner);
+
+    /**
+    * Generic error event.
     * event
     * @param code - The error code.
-    * 1: conflict, identity already registered with another thing.
-    * 2: not found, identity does not exist.
-    * 3: unauthorzied, modification only by owner.
-    * 4: unknown schema.
-    * 5: bad request, at least one identity needed.
-    * 6: bad request, at least one data needed.
+    * @param reference - Related references data for the Error event, e.g.: Identity, Address, etc.
+    * 1: Identity collision, already assigned to another Thing.
+    * 2: Not found, identity does not exist.
+    * 3: Unauthorized, modification only by owner.
+    * 4: Unknown schema specified.
+    * 5: Incorrect input, at least one identity is required.
+    * 6: Incorrect input, data is required.
+    * 7: Incorrect format of the identity, schema length and identity length cannot be empty.
+    * 8: Incorrect format of the identity, identity must be padded with trailing 0s.
     */
-    event Error(uint code, bytes32 reference);
+    event Error(uint code, bytes32[] reference);
 
     struct Thing {
-        address ownerAddress;
-        uint schemaReference;
-        bytes32[] data;
-        bool isValid;
+      // All identities of a Thing. e.g.: BLE ID, public key, etc.
+      bytes32[] identities;
+      // Metadata of the Thing. Hex of ProtoBuffer structure.
+      bytes32[] data;
+      // Registrant address, who have added the thing.
+      address ownerAddress;
+      // Index of ProtoBuffer schema used. Optimized to fit in one bytes32.
+      uint88 schemaIndex;
+      // Status of the Thing. false if compromised, revoked, etc.
+      bool isValid;
     }
 
-    mapping(bytes32 => uint) public identities;
-
+    // Things are stored in the array
     Thing[] public things;
+
+    // Identity to Thing index pointer for lookups and duplicates prevention.
+    mapping(bytes32 => uint) public idToThing;
+
+    // Content of ProtoBuffer schema.
     string[] public schemas;
 
     /**
-    * Function cant have ether.
+    * Function can't contain Ether value.
     * modifier
     */
     modifier noEther() {
@@ -59,11 +79,10 @@ contract Registry {
     /**
     * Allow only registrants to exec the function.
     * modifier
-    * @param _registrant - The registrant address.
     */
-    modifier isRegistrant(address _registrant) {
+    modifier isRegistrant() {
         Registrar registrar = Registrar(registrarAddress);
-        if (registrar.isActiveRegistrant(_registrant)) {
+        if (registrar.isActiveRegistrant(msg.sender)) {
             _
         }
     }
@@ -71,125 +90,160 @@ contract Registry {
     /**
     * Allow only CA to exec the function.
     * modifier
-    * @param _ca - The CA address.
     */
-    modifier isCertificationAuthority(address _ca) {
+    modifier isCertificationAuthority() {
         Registrar registrar = Registrar(registrarAddress);
-        if (registrar.certificationAuthority() == _ca) {
+        if (registrar.certificationAuthority() == msg.sender) {
             _
         }
     }
 
     /**
-    * Construct registry with and starting schema and things lenght of one.
+    * Initialization of the contract
     * constructor
     */
     function Registry() {
+        // Initialize arrays. Leave first element empty, since mapping points non-existent keys to 0.
         things.length++;
         schemas.length++;
     }
 
     /**
-    * Create a new thing on things array.
-    * internalfunction
-    * @param _caller - The caller of the function.
-    * @param _schemaIndex - The schema index of the schema to parse the thing.
-    * @param _data - The data array.
-    * @param _identities - The identities array.
+    * Add Identities to already existing Thing.
+    * internal_function
+    * @param _thingIndex - The position of the Thing in the array.
+    * @param _ids - Identities of the Thing in chunked format. Maximum size of one Identity is 2057 bytes32 elements.
     */
-    function _create(address _caller, uint _schemaIndex, bytes32[] _data, bytes32[] _identities) internal returns (bool) {
-        uint pos = things.length++;
-        if (!_update(_caller, pos, _schemaIndex, _data, _identities)){
-            things.length--;
+    function _addIdentities(uint _thingIndex, bytes32[] _ids) internal returns (bool){
+        // Checks if there's duplicates and creates references
+        if (false == _rewireIdentities(_ids, 0, _thingIndex, 0)) {
             return false;
+        }
+
+        // Thing don't have Identities yet.
+        if (things[_thingIndex].identities.length == 0) {
+            // Copy directly. Cheaper than one by one.
+            things[_thingIndex].identities = _ids;
+        }
+        else {
+            // _ids array current element pointer.
+            // uint32 technically allows to put 128Gb of Identites into one Thing.
+            uint32 cell = uint32(things[_thingIndex].identities.length);
+            // Copy new IDs to the end of array one by one
+            things[_thingIndex].identities.length += _ids.length;
+            // If someone will provide _ids array with more than 2^32, it will go into infinite loop at a caller's expense.
+            for (uint32 k = 0; k < _ids.length; k++) {
+                things[_thingIndex].identities[cell++] = _ids[k];
+            }
         }
         return true;
     }
 
     /**
-    * Update an existing thing on things array.
-    * internalfunction
-    * @param _caller - The caller of the function.
-    * @param _pos - The position of the thing in the array.
-    * @param _schemaIndex - The schema index of the schema to parse the thing.
-    * @param _data - The data array.
-    * @param _identities - The identities array.
+    * Point provided Identities to the desired "things" array index in the lookup hash table idToThing.
+    * internal_function
+    * @param _ids - Identities of the Thing.
+    * @param _oldIndex - Previous index that this Identities pointed to, prevents accidental rewirings and duplicate Identities.
+    * @param _newIndex - things array index the Identities should point to.
+    * @param _newIndex - things array index the Identities should point to.
+    * @param _idsForcedLength — Internal use only. Zero by default. Used to revert side effects if execution fails at any point.
+    *       Prevents infinity loop in recursion. Though recursion is not desireable, it's used to avoid overcomplication of the code.
     */
-    function _update(address _caller, uint _pos, uint _schemaIndex, bytes32[] _data, bytes32[] _identities) internal returns (bool) {
-        if (_schemaIndex > schemas.length) {
-            Error(4, _identities[0]);
+    function _rewireIdentities(bytes32[] _ids, uint _oldIndex, uint _newIndex, uint32 _idsForcedLength) internal returns(bool) {
+        // Current ID cell pointer
+        uint32 cell = 0;
+        // Length of namespace part of the Identity in URN format
+        uint16 urnNamespaceLength;
+        // Length of ID part of the Identity, though only uint16 needed but extended to uint24 for correct calculations.
+        uint24 idLength;
+        // Array cells used for current ID. uint24 to match idLength type, so no conversions needed.
+        uint24 cellsPerId;
+        // Hash of current ID
+        bytes32 idHash;
+        // How many bytes of payload are there in the last cell of single ID.
+        uint8 lastCellBytesCnt;
+        // Number of elements that needs to be processed in _ids array
+        uint32 idsLength = _idsForcedLength > 0 ? _idsForcedLength : uint32(_ids.length);
+
+        // No Identities provided
+        if (idsLength == 0) {
+            Error(5, _ids);
             return false;
         }
-        if (_identities.length == 0) {
-            Error(5, 0);
-            return false;
-        }
-        if (_data.length == 0) {
-            Error(6, 0);
-            return false;
-        }
-        if (things[_pos].ownerAddress != 0x0 && things[_pos].ownerAddress != _caller) {
-            Error(3, _identities[0]);
-            return false;
-        }
-        for (uint i = 0; i < _identities.length; i++) {
-            uint previous = identities[_identities[i]];
-            if (previous > 0 && previous != _pos) {
-                Error(1, _identities[i]);
+
+        // Each ID
+        while (cell < idsLength) {
+            // Get length of schema. First byte of packed ID.
+            // Means that next urnNamespaceLength bytes is the schema definition.
+            urnNamespaceLength = uint8(_ids[cell][0]);
+            // Length of ID part of this URN Identity.
+            idLength =
+                // First byte
+                uint16(_ids[cell + (urnNamespaceLength + 1) / 32][(urnNamespaceLength + 1) % 32]) * 2 ** 8 |
+                // Second byte
+                uint8(_ids[cell + (urnNamespaceLength + 2) / 32][(urnNamespaceLength + 2) % 32]);
+
+            // We deal with the new Identity (instead rewiring after deletion)
+            if (_oldIndex == 0 && (urnNamespaceLength == 0 || idLength == 0)) {
+                // Incorrect Identity structure.
+                Error(7, _ids);
+
+                // If at least one Identity already wired. And if this is not a recursive call.
+                if (cell > 0 && _idsForcedLength == 0) {
+                    _rewireIdentities(_ids, _newIndex, _oldIndex, cell); // Revert changes made so far
+                }
+                return false;
+            }
+
+            // Total bytes32 cells devoted for this ID. Maximum 2057 is possible.
+            cellsPerId = (idLength + urnNamespaceLength + 3) / 32;
+            if ((idLength + urnNamespaceLength + 3) % 32 != 0) {
+                // Identity uses one more cell partially
+                cellsPerId++;
+                // For new identity, ensure that complies with the format, specifally padding is done with 0s.
+                // This prevents from adding duplicated identities, which might be accepted because generate a different hash.
+                if (_oldIndex == 0) {
+                    // How many bytes the ID occupies in the last cell.
+                    lastCellBytesCnt = uint8((idLength + urnNamespaceLength + 3) % 32);
+
+                    // Check if padded with zeros. Explicitly converting 2 into uint256 for correct calculations.
+                    if (uint256(_ids[cell + cellsPerId - 1]) * (uint256(2) ** (lastCellBytesCnt * 8)) > 0) {  // Bitwise left shift, result have to be 0
+                        // Identity is not padded with 0s
+                        Error(8, _ids);
+                        // If at least one Identity already wired. And if this is not a recursive call.
+                        if (cell > 0 && _idsForcedLength == 0) {
+                            _rewireIdentities(_ids, _newIndex, _oldIndex, cell); // Revert changes made so far
+                        }
+                        return false;
+                    }
+                }
+            }
+
+            // Single Identity array
+            bytes32[] memory id = new bytes32[](cellsPerId);
+
+            for (uint8 j = 0; j < cellsPerId; j++) {
+                id[j] = _ids[cell++];
+            }
+
+            // Uniqueness check and reference for lookups
+            idHash = sha3(id);
+
+            // If it points to where it's expected.
+            if (idToThing[idHash] == _oldIndex) {
+                // Wire Identity
+                idToThing[idHash] = _newIndex;
+            } else {
+                // References to a wrong Thing, e.g. Identity already exists, etc.
+                Error(1, _ids);
+                // If at least one Identity already wired. And if this is not a recursive call.
+                if (cell - cellsPerId > 0 && _idsForcedLength == 0) {
+                    _rewireIdentities(_ids, _newIndex, _oldIndex, cell - cellsPerId); // Revert changes made so far
+                }
                 return false;
             }
         }
-        things[_pos] = Thing(_caller, _schemaIndex, _data, true);
-        for (uint k = 0; k < _identities.length; k++) {
-            if (identities[_identities[k]] == 0) {
-                identities[_identities[k]] = _pos;
-                Creation(_identities[k], _caller, _pos);
-            }
-        }
-        return true;
-    }
 
-    /**
-    * Set a thing as valid.
-    * internalfunction
-    * @param _caller - The caller of the function.
-    * @param _identity - The identities array.
-    * @param _isValid - The validity of the thing.
-    */
-    function _setValid(address _caller, bytes32 _identity, bool _isValid) internal returns (bool) {
-        uint pos = identities[_identity];
-        if (pos == 0) {
-            Error(2, _identity);
-            return false;
-        }
-        Thing thing = things[pos];
-        if (things[pos].ownerAddress != _caller) {
-            Error(3, _identity);
-            return false;
-        }
-        things[pos].isValid = _isValid;
-        return true;
-    }
-
-    /**
-    * Set a thing as valid.
-    * internalfunction
-    * @param _caller - The caller of the function.
-    * @param _pos - The position of the thing in teh array.
-    * @param _identity - The identity of the thing.
-    */
-    function _linkIdentity(address _caller, uint _pos, bytes32 _identity) internal returns (bool) {
-        if (_pos > things.length || identities[_identity] > 0) {
-            Error(2, _identity);
-            return false;
-        }
-        Thing thing = things[_pos];
-        if (things[_pos].ownerAddress != _caller) {
-            Error(3, _identity);
-            return false;
-        }
-        identities[_identity] = _pos;
-        Update(_identity, _caller, things[_pos].isValid, _pos);
         return true;
     }
 
@@ -198,133 +252,312 @@ contract Registry {
     /**
     * Set the registrar address for the contract, (This function can be called only once).
     * public_function
-    * @param _registrarAddress - The registrar address.
+    * @param _registrarAddress - The Registrar contract address.
     */
     function configure(address _registrarAddress) noEther returns (bool) {
         if (registrarAddress != 0x0) {
-            Error(3, bytes32(registrarAddress));
+            // Convert into array to properly generate Error event
+            bytes32[] memory ref = new bytes32[](1);
+            ref[0] = bytes32(registrarAddress);
+
+            Error(3, ref);
             return false;
         }
+
         registrarAddress = _registrarAddress;
         return true;
     }
 
     /**
-    * Create a new thing on things array, only registrants allowed.
+    * Create a new Thing in the Registry, only for registrants.
     * public_function
-    * @param _schemaIndex - The schema index of the schema to parse the thing.
-    * @param _data - The data array.
-    * @param _identities - The identities array.
+    * @param _ids - The chunked identities array.
+    * @param _data - Thing chunked data array.
+    * @param _schemaIndex - Index of the schema to parse Thing's data.
     */
-    function create(uint _schemaIndex, bytes32[] _data, bytes32[] _identities) isRegistrant(msg.sender) noEther returns (bool) {
-        return _create(msg.sender, _schemaIndex, _data, _identities);
-    }
-
-    /**
-    * Update a new thing on things array, only registrants allowed.
-    * public_function
-    * @param _pos - The position of the thing in the array.
-    * @param _schemaIndex - The schema index of the schema to parse the thing.
-    * @param _data - The data array.
-    * @param _identities - The identities array.
-    */
-    function update(uint _pos, uint _schemaIndex, bytes32[] _data, bytes32[] _identities) isRegistrant(msg.sender) noEther returns (bool) {
-        return _update(msg.sender, _pos, _schemaIndex, _data, _identities);
-    }
-
-    /**
-    * Allows entries with _identities of 1 times 32bytes only; others have to be added through linkIdentity later, only registrants allowed.
-    * Review: user should be aware that if there will be not enough identities transaction will run out of gas.
-    * Review: user should be aware that providing too many identities will result in some of them not being used.
-    * public_function
-    * @param _schemaIndex - The schema index of the schema to parse the thing.
-    * @param _dataLength - The data lenght of every thing to add.
-    * @param _data - The data array.
-    * @param _identities - The identities array.
-    */
-    function createMany(uint _schemaIndex, uint8[] _dataLength, bytes32[] _data, bytes32[] _identities) isRegistrant(msg.sender) noEther returns (bool) {
-        uint thingPosition = 0;
-        for (uint i = 0; i < _identities.length; i++) {
-            uint8 length = _dataLength[i];
-            bytes32[] memory datas = new bytes32[](length);
-            for (uint j = 0; j < length; j++) {
-                datas[j] = _data[thingPosition + j];
-            }
-            thingPosition += length;
-            bytes32[] memory ids = new bytes32[](1);
-            ids[0] = _identities[i];
-            _create(msg.sender, _schemaIndex, datas, ids);
-        }
-        // Review: maybe check if there is identities left and throw if so? => done
-        if (thingPosition != _data.length) {
+    function createThing(bytes32[] _ids, bytes32[] _data, uint88 _schemaIndex) isRegistrant returns (bool) {
+        // No data provided
+        if (_data.length == 0) {
+            Error(6, _ids);
             return false;
         }
+
+        if (_schemaIndex >= schemas.length || _schemaIndex == 0) {
+            Error(4, _ids);
+            return false;
+        }
+
+        // Wiring identities to non-existent Thing.
+        // This optimization reduces transaction cost by 100k of gas on avg (or by 3x), in case if _rewireIdentities will fail.
+        // Which leads to less damage to the caller, who provided incorrect data.
+        if (false == _rewireIdentities(_ids, 0, things.length, 0)) {
+            // Incorrect IDs format or duplicate Identities provided.
+            return false;
+        }
+
+        // Now after all verifications passed we can add a the Thing.
+        things.length++;
+        // Creating structure in-place is 11k gas cheaper than assigning parameters separately.
+        // That's why methods like updateThingData, addIdentities are not reused here.
+        things[things.length - 1] = Thing(_ids, _data, msg.sender, _schemaIndex, true);
+
+        // "Broadcast" event
+        Created(_ids, msg.sender);
         return true;
     }
 
     /**
-    * Link new identity to a thing, only registrants allowed.
+    * Create multiple Things at once.
+    * Review: user should be aware that if there will be not enough identities transaction will run out of gas.
+    * Review: user should be aware that providing too many identities will result in some of them not being used.
     * public_function
-    * @param _pos - The index position of the thing.
-    * @param _identity - The identity to link.
+    * @param _ids - The Thing's IDs to be added in bytes32 chunks
+    * @param _idsPerThing — number of IDs per thing, in relevant order
+    * @param _data - The data chunks
+    * @param _dataLength - The data length of every Thing to add, in relevant order
+    * @param _schemaIndex -Index of the schema to parse Thing's data
     */
-    function linkIdentity(uint _pos, bytes32 _identity) isRegistrant(msg.sender) noEther returns (bool success) {
-        return _linkIdentity(msg.sender, _pos, _identity);
+    function createThings(bytes32[] _ids, uint16[] _idsPerThing, bytes32[] _data, uint16[] _dataLength, uint88 _schemaIndex) isRegistrant noEther  {
+        // Current _id array index
+        uint16 idIndex = 0;
+        // Current _data array index
+        uint16 dataIndex = 0;
+        // Counter of total id cells per one thing
+        uint24 idCellsPerThing = 0;
+        // Length of namespace part of the Identity in URN format
+        uint16 urnNamespaceLength;
+        // Length of ID part of the Identity, though only uint16 needed but extended to uint24 for correct calculations.
+        uint24 idLength;
+
+        // Each Thing
+        for (uint16 i = 0; i < _idsPerThing.length; i++) {
+            // Reset for each thing
+            idCellsPerThing = 0;
+            // Calculate number of cells for current Thing
+            for (uint16 j = 0; j < _idsPerThing[i]; j++) {
+                urnNamespaceLength = uint8(_ids[idIndex + idCellsPerThing][0]);
+                idLength =
+                    // First byte
+                    uint16(_ids[idIndex + idCellsPerThing + (urnNamespaceLength + 1) / 32][(urnNamespaceLength + 1) % 32]) * 2 ** 8 |
+                    // Second byte
+                    uint8(_ids[idIndex + idCellsPerThing + (urnNamespaceLength + 2) / 32][(urnNamespaceLength + 2) % 32]);
+
+                idCellsPerThing += (idLength + urnNamespaceLength + 3) / 32;
+                if ((idLength + urnNamespaceLength + 3) % 32 != 0) {
+                    idCellsPerThing++;
+                }
+            }
+
+            // Extract ids for a single Thing
+            bytes32[] memory ids = new bytes32[](idCellsPerThing);
+            // Reusing var name to maintain stack size in limits
+            for (j = 0; j < idCellsPerThing; j++) {
+                ids[j] = _ids[idIndex++];
+            }
+
+            bytes32[] memory data = new bytes32[](_dataLength[i]);
+            for (j = 0; j < _dataLength[i]; j++) {
+                data[j] = _data[dataIndex++];
+            }
+
+            createThing(ids, data, _schemaIndex);
+        }
+    }
+
+    /**
+    * Add new IDs to the Thing, only registrants allowed.
+    * public_function
+    * @param _id - ID of the existing Thing
+    * @param _newIds - IDs to be added.
+    */
+    function addIdentities(bytes32[] _id, bytes32[] _newIds) isRegistrant noEther returns (bool) {
+        var index = idToThing[sha3(_id)];
+
+        // There no Thing with such ID
+        if (index == 0) {
+            Error(2, _id);
+            return false;
+        }
+
+        if (_newIds.length == 0) {
+            Error(5, _id);
+            return false;
+        }
+
+        if (things[index].ownerAddress != 0x0 && things[index].ownerAddress != msg.sender) {
+            Error(3, _id);
+            return false;
+        }
+
+        if (_addIdentities(index, _newIds)) {
+            Updated(_id, things[index].ownerAddress, things[index].isValid);
+            return true;
+        }
+        return false;
+    }
+
+    /**
+    * Update Thing's data.
+    * public_function
+    * @param _id - The identity array.
+    * @param _data - Thing data array.
+    * @param _schemaIndex - The schema index of the schema to parse the thing.
+    */
+    function updateThingData(bytes32[] _id, bytes32[] _data, uint88 _schemaIndex) isRegistrant noEther returns (bool) {
+        uint index = idToThing[sha3(_id)];
+
+        if (index == 0) {
+            Error(2, _id);
+            return false;
+        }
+
+        if (things[index].ownerAddress != 0x0 && things[index].ownerAddress != msg.sender) {
+            Error(3, _id);
+            return false;
+        }
+
+        if (_schemaIndex > schemas.length || _schemaIndex == 0) {
+            Error(4, _id);
+            return false;
+        }
+
+        if (_data.length == 0) {
+            Error(6, _id);
+            return false;
+        }
+
+        things[index].schemaIndex = _schemaIndex;
+        things[index].data = _data;
+        Updated(_id, things[index].ownerAddress, things[index].isValid);
+        return true;
     }
 
     /**
     * Set validity of a thing, only registrants allowed.
     * public_function
-    * @param _identity - The identity to change.
+    * @param _id - The identity to change.
     * @param _isValid - The new validity of the thing.
     */
-    function setValid(bytes32 _identity, bool _isValid) isRegistrant(msg.sender) noEther returns (bool) {
-        return _setValid(msg.sender, _identity, _isValid);
+    function setThingValid(bytes32[] _id, bool _isValid) isRegistrant noEther returns (bool) {
+        uint index = idToThing[sha3(_id)];
+
+        if (index == 0) {
+            Error(2, _id);
+            return false;
+        }
+
+        if (things[index].ownerAddress != msg.sender) {
+            Error(3, _id);
+            return false;
+        }
+
+        things[index].isValid = _isValid;
+        // Broadcast event
+        Updated(_id, things[index].ownerAddress, things[index].isValid);
+        return true;
     }
 
     /**
-    * Add a new schema, only CA allowed.
+    * Delete previously added Thing
+    * public_function
+    * @param _id - One of Thing's Identities.
+    */
+    function deleteThing(bytes32[] _id) isRegistrant noEther returns (bool) {
+        uint index = idToThing[sha3(_id)];
+
+        if (index == 0) {
+            Error(2, _id);
+            return false;
+        }
+
+        if (things[index].ownerAddress != msg.sender) {
+            Error(3, _id);
+            return false;
+        }
+
+        // Rewire Thing's identities to index 0, e.g. delete.
+        if (false == _rewireIdentities(things[index].identities, index, 0, 0)) {
+            // Cannot rewire, should never happen
+            return false;
+        }
+
+        // Put last element in place of deleted one
+        if (index != things.length - 1) {
+            // Rewire identities of the last Thing to the new prospective index.
+            if (false == _rewireIdentities(things[index].identities, things.length - 1, index, 0)) {
+                // Cannot rewire, should never happen
+                _rewireIdentities(things[index].identities, 0, index, 0); // Rollback
+                return false;
+            }
+            // Move last Thing to the place of deleted one.
+            things[index] = things[things.length - 1];
+        }
+
+        // "Broadcast" event with identities before they're lost.
+        Deleted(things[index].identities, things[index].ownerAddress);
+
+        // Delete last Thing
+        things.length--;
+
+        return true;
+    }
+
+    /**
+    * Get Thing's information
+    * constant_function
+    * @param _id - identity of the thing.
+    */
+    function getThing(bytes32[] _id) constant returns (bytes32[], bytes32[], uint88, string, address, bool) {
+        var index = idToThing[sha3(_id)];
+        // No such Thing
+        if (index == 0) {
+            Error(2, _id);
+            throw;
+        }
+        Thing thing = things[index];
+        return (thing.identities, thing.data, thing.schemaIndex, schemas[thing.schemaIndex], thing.ownerAddress, thing.isValid);
+    }
+
+
+    // Warning. Function is only for debugging purposes. Thing index is not fixed and can be changed at any time.
+    function getThingByIndexDEBUG(uint _index) constant returns (bytes32[], bytes32[], uint88, string, address, bool) {
+        if (_index == 0 || _index >= things.length) {
+            bytes32[] memory ref = new bytes32[](1);
+            ref[0] = bytes32(_index);
+            Error(2, ref);
+            return;
+        }
+        var thing = things[_index];
+        return (thing.identities, thing.data, thing.schemaIndex, schemas[thing.schemaIndex], thing.ownerAddress, thing.isValid);
+    }
+
+    /**
+    * Check if Thing is present in the registry by it's ID
+    * constant_function
+    * @param _id - identity for lookup.
+    */
+    // Todo: reevaluate this method. Do we need it?
+    function thingExist(bytes32[] _id) constant returns (bool) {
+        return idToThing[sha3(_id)] > 0;
+    }
+
+    /**
+    * Add a new schema, only Registrar allowed.
     * public_function
     * @param _schema - New schema string to add.
-    * The string should use ;#; characters as seprators between name, description and definition, example:
-    * schameName + ';#;' + schemaDescription + ";#;" + schemaDefinition
+    * The string should use ;#; characters as separators between name, description and definition, example:
+    * schemaName + ';#;' + schemaDescription + ";#;" + schemaDefinition
     */
-    function addSchema(string _schema) isCertificationAuthority(msg.sender) noEther returns (uint) {
+    function createSchema(string _schema) isCertificationAuthority noEther returns (uint) {
         uint pos = schemas.length++;
         schemas[pos] = _schema;
         return pos;
     }
 
     /**
-    * Geth a thing data, schema and validity.
-    * constant_function
-    * @param _identity - identity of the thing.
+    * Fallback
     */
-    function getThing(bytes32 _identity) constant returns (string, bytes32[], bool) {
-        uint pos = identities[_identity];
-        if (pos == 0) {
-            Error(2, _identity);
-            return;
-        }
-        Thing thing = things[pos];
-        return (schemas[thing.schemaReference], thing.data, thing.isValid);
-    }
-
-    /**
-    * Check the validity of an identity.
-    * constant_function
-    * @param _identities - identities to check.
-    */
-    function checkAnyIdentity(bytes32[] _identities) constant returns (bool) {
-        for (uint k = 0; k < _identities.length; k++) {
-            if (identities[_identities[k]] > 0)
-            return true;
-        }
-        return false;
-    }
-
     function () noEther {
         throw;
     }
-
 }
