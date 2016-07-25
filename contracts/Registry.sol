@@ -81,7 +81,7 @@ contract Registry {
     }
 
     /**
-    * Construct registry with and starting schema and things lenght of one.
+    * Construct registry with starting schema and things lenght of one.
     * constructor
     */
     function Registry() {
@@ -116,7 +116,7 @@ contract Registry {
     * @param _identities - The identities array.
     */
     function _update(address _caller, uint _pos, uint _schemaIndex, bytes32[] _data, bytes32[] _identities) internal returns (bool) {
-        if (_schemaIndex > schemas.length) {
+        if (_schemaIndex >= schemas.length || _schemaIndex == 0) {
             Error(4, _identities[0]);
             return false;
         }
@@ -163,11 +163,11 @@ contract Registry {
             return false;
         }
         Thing thing = things[pos];
-        if (things[pos].ownerAddress != _caller) {
+        if (thing.ownerAddress != _caller) {
             Error(3, _identity);
             return false;
         }
-        things[pos].isValid = _isValid;
+        thing.isValid = _isValid;
         return true;
     }
 
@@ -179,17 +179,17 @@ contract Registry {
     * @param _identity - The identity of the thing.
     */
     function _linkIdentity(address _caller, uint _pos, bytes32 _identity) internal returns (bool) {
-        if (_pos > things.length || identities[_identity] > 0) {
+        if (_pos >= things.length || _pos == 0 || identities[_identity] > 0) {
             Error(2, _identity);
             return false;
         }
         Thing thing = things[_pos];
-        if (things[_pos].ownerAddress != _caller) {
+        if (thing.ownerAddress != _caller) {
             Error(3, _identity);
             return false;
         }
         identities[_identity] = _pos;
-        Update(_identity, _caller, things[_pos].isValid, _pos);
+        Update(_identity, _caller, thing.isValid, _pos);
         return true;
     }
 
@@ -221,7 +221,7 @@ contract Registry {
     }
 
     /**
-    * Update a new thing on things array, only registrants allowed.
+    * Update a thing in things array, only registrants allowed.
     * public_function
     * @param _pos - The position of the thing in the array.
     * @param _schemaIndex - The schema index of the schema to parse the thing.
@@ -296,7 +296,7 @@ contract Registry {
     }
 
     /**
-    * Geth a thing data, schema and validity.
+    * Get a thing data, schema and validity.
     * constant_function
     * @param _identity - identity of the thing.
     */
@@ -311,20 +311,16 @@ contract Registry {
     }
 
     /**
-    * Check the validity of an identity.
+    * Check any identity presence.
     * constant_function
     * @param _identities - identities to check.
     */
     function checkAnyIdentity(bytes32[] _identities) constant returns (bool) {
         for (uint k = 0; k < _identities.length; k++) {
-            if (identities[_identities[k]] > 0)
-            return true;
+            if (identities[_identities[k]] > 0) return true;
         }
         return false;
     }
 
-    function () noEther {
-        throw;
-    }
-
+    function () noEther {}
 }

@@ -60,7 +60,10 @@ var EventsHelper = function() {
             console.log(err);
             return reject(err);
           }
-          return resolve(events);
+          var filtered = events.filter(function(event) {
+            return event.transactionHash === transactionHash;
+          });
+          return resolve(filtered);
         });
       });
     });
