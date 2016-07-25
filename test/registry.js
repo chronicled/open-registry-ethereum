@@ -1,4 +1,4 @@
-// Set testrpc --gasLimit=3700000 , so contract can be deployed
+// Set testrpc --gasLimit=3700000, so contract can be deployed
 
 contract('Registry', {reset_state: true}, function(accounts) {
     var eventsHelper = require('../truffle-helpers/eventsHelper.js');
@@ -7,6 +7,7 @@ contract('Registry', {reset_state: true}, function(accounts) {
     var packURN = UtilURN.packer.encodeAndChunk.bind(UtilURN.packer);
     var unpackURN = UtilURN.packer.decode.bind(UtilURN.packer);
     var randNum = function(upTo) {return Math.floor(Math.random() * upTo)};
+    var randId = function() {return ('00000000' + randNum(100000000000000000)).slice(-18)}
 
     it('should be possible to configure registry', function(done) {
       var registrar = Registrar.deployed();
@@ -29,6 +30,8 @@ contract('Registry', {reset_state: true}, function(accounts) {
 
     var newId = "nfc:1.0:20153c913d9c4a";
 
+    var thingData = ["0x1200000000000000000000000000000000000000000000000000000000000000","0x1400000000000000000000000000000000000000000000000000000000000000"];
+
     it('Basic workflow', function(done) {
       var registrar = Registrar.deployed();
       var registry = Registry.deployed();
@@ -36,93 +39,174 @@ contract('Registry', {reset_state: true}, function(accounts) {
       eventsHelper.setupEvents(registry);
       var createdEvent = registry.Created();
       var updatedEvent = registry.Updated();
+      var deletedEvent = registry.Deleted();
+      var errorEvent = registry.Error();
 
 
       var chunkedIds = UtilURN.packer.encodeAndChunk(ids);
-      var params = [chunkedIds, ["0x1","0x2"], 1];
+      var createThingParams = [chunkedIds, thingData, 1];
+      var schemaContent = "Schema";
 
       var lookUpId = ids[randNum(ids.length)];
 
+      var shared = {};
+
       registry.configure(registrar.address).then(function(txHash) {
         assert.notEqual(txHash, null);
+
+        // Add Schema
         // Todo: pass real schema
-        return registry.createSchema("0x12");
+        return registry.createSchema(schemaContent);
       }).then(function(txHash) {
         assert.notEqual(txHash, null);
+
         // Add Registrant
         return registrar.add(accounts[0], "");
       }).then(function(txHash){
           assert.notEqual(txHash, null);
           // Check return value
-          return registry.createThing.call.apply(null, params);
+          return registry.createThing.call.apply(null, createThingParams);
       }).then(function(result) {
         assert.equal(result, true);
-        return registry.createThing.apply(null, params);
+
+        // Creating Thing through transaction
+        return registry.createThing.apply(null, createThingParams);
       }).then(function(txHash) {
         // Transaction should succeed
         assert.notEqual(txHash, null);
+
+        // Created Event should be generated
         return eventsHelper.getEvents(txHash, createdEvent);
       }).then(function(events) {
-        // Created Event should be generated
         var eventParams = events[0].args;
         // Same Ids as provided
         assert.deepEqual(eventParams.ids, chunkedIds);
-        // Check if thing is there.
-        // return registry.getThingByIndexDEBUG.call(1);
-        eventsHelper.setupEvents(registry);
+
+        // Can add Identity using any of the previously added IDs as parameter
         return registry.addIdentities.call(packURN(lookUpId), packURN(newId));
       }).then(function(result) {
         assert.equal(result, true);
+
+        // Can add Identity to existing Thing.
         return registry.addIdentities(packURN(lookUpId), packURN(newId));
       }).then(function(txHash) {
         assert.notEqual(txHash, null);
+        // Verify Updated event
         return eventsHelper.getEvents(txHash, updatedEvent);
       }).then(function(events) {
         assert.deepEqual(events[0].args.ids, packURN(lookUpId));
+
+        // Can lookup Thing by any of the IDs
+        return new Promise(function(resolve, reject) {
+          var liveCalls = 0;
+          var currentIds = ids.concat(newId);
+          currentIds.forEach(function(id) {
+            liveCalls++;
+            registry.getThing.call(packURN(id)).then(function(thing) {
+              assert.deepEqual(thing[0], packURN(currentIds));
+              // Is data equal to original
+              assert.deepEqual(thing[1], thingData);
+              assert.equal(thing[3], schemaContent);
+
+              if (--liveCalls == 0) resolve();
+            });
+          });
+        });
+      }).then(function() {
+
+        // Check maximum possible Identity schema length, with really big identity
+        shared.maxId = Array(256).join('s') + ":" + Array(3500 * 2 + 1).join('f');
+        return registry.createThing(packURN(shared.maxId), ["0x1","0x2"], 1);
+      }).then(function(txHash) {
+        assert.notEqual(txHash, null);
+        // Created Event contains whole id
+        return eventsHelper.getEvents(txHash, createdEvent);
+      }).then(function(events) {
+        assert.deepEqual(events[0].args.ids, packURN(shared.maxId));
+
+        // Duplication is prevented. Total
+        return registry.createThing.apply(null, createThingParams);
+      }).then(function(txHash) {
+        assert.notEqual(txHash, null);
+        return eventsHelper.getEvents(txHash, errorEvent);
+      }).then(function(events) {
+        var args = events[0].args;
+        assert.equal(args.code, 1);
+        assert.deepEqual(args.reference, chunkedIds);
+
+        // Duplication is prevented. Overlapping
+        var params = createThingParams;
+        shared.overlappingIds = packURN(['sn:' + randId(), 'isbn:' + randId(), ids[randNum(ids.length)]]);
+        params[0] = shared.overlappingIds;
+        return registry.createThing.apply(null, params);
+      }).then(function(txHash) {
+        assert.notEqual(txHash, null);
+        return eventsHelper.getEvents(txHash, errorEvent);
+      }).then(function(events) {
+        var args = events[0].args;
+        assert.equal(args.code, 1);
+        assert.deepEqual(args.reference, shared.overlappingIds);
+
+
+        // Can delete record, all others are still accessible
+        return registry.deleteThing(packURN(ids[randNum(ids.length)]));
+      }).then(function(txHash) {
+        assert.notEqual(txHash, null);
+
+        // - Deleted Event is generated
+        return eventsHelper.getEvents(txHash, deletedEvent);
+      }).then(function(events) {
+        var event = events[0];
+        assert.equal(event.event, 'Deleted');
+        assert.deepEqual(event.args.ids, packURN(ids.concat(newId)));
+
+        return new Promise(function(resolve, reject) {
+          var liveCalls = 0;
+          var currentIds = ids.concat(newId);
+          currentIds.forEach(function(id) {
+            liveCalls++;
+            registry.thingExist.call(packURN(id)).then(function(thing) {
+              assert.equal(thing, false);
+
+              if (--liveCalls == 0) resolve();
+            });
+          });
+        });
+      }).then(function() {
+
+        // Can create multiple Things in one call
+        shared.multiRandId = 'custom:' + randId();
+        return registry.createThings(
+          packURN(ids.concat(newId).concat(shared.multiRandId)), // ids
+          [2,2,1], // ids per Thing
+          ["0x1","0x2","0x3","0x4","0x5","0x6","0x7"], // data
+          [2,1,3],// data cells per Thing
+          1// Schema
+        );
+      }).then(function(txHash) {
+        assert.notEqual(txHash, null);
+
+        return eventsHelper.getEvents(txHash, createdEvent);
+      }).then(function(events) {
+        // Check all events
+        assert.deepEqual(events[0].args.ids, packURN(ids.slice(0,2)));
+        assert.deepEqual(events[1].args.ids, packURN(ids.slice(-1).concat(newId)));
+        assert.deepEqual(events[2].args.ids, packURN(shared.multiRandId));
+
+        // Todo try access all the created Things
         done();
       }).catch(console.log);
 
     });
 
-    // it('Can add new Identity to a thing using any of its existing ids.', function(done) {
-    //   var registry = Registry.deployed();
-    //   // eventsHelper.setupEvents(registry);
-    //
-    //
-    //
-    //
-    //
-    // });
 
-    // it('Thing can be accessed by any of the IDs', function(done) {
-    //   var registry = Registry.deployed();
-    //
-    //
-    //   // Check method return value
-    //   registry.getThing.call.apply(null, params).then(function(result) {
-    //     assert.equal(result, true);
-    //     return registry.create.apply(null, params);
-    //   }).then(function(txHash) {
-    //     // Transaction should succeed
-    //     assert.notEqual(txHash, null);
-    //     return eventsHelper.getEvents(txHash, createdEvent);
-    //   }).then(function(events) {
-    //     // Created Event should be generated
-    //     var eventParams = events[0].args;
-    //     // Same Ids as provided
-    //     assert.deepEqual(eventParams.ids, chunkedIds);
-    //     return
-    //   }).catch(console.log);
-    //
-    // });
-
-    // Duplication is prevented. Total or overlapping
+    // Todo:
+    // All identities of deleted item is inaccessible
+    // Can create Thing with previously deleted Identity.
+    // Others cannot delete my records
+    // All the edge cases
 
 
-    // Can add identity to existing thing. Accessible by all identities.
-
-
-    // Can delete record, all others are still accessible.
 
 
     // Add schema:
@@ -135,66 +219,22 @@ contract('Registry', {reset_state: true}, function(accounts) {
     // message Data {
     // 	optional string size = 1;
     // }
+
+
+
+
+    it('should be possible to add schema', function(done) {
+      var registrar = Registrar.deployed();
+      var registry = Registry.deployed();
+      registrar.add(accounts[0], "").then(function() {
+      }).then(function() {
+        return registry.configure(registrar.address);
+      }).then(function() {
+        return registry.createSchema('test');
+      }).then(function() {
+        return registry.schemas.call(1);
+      }).then(function(result) {
+        assert.equal(result, 'test');
+      }).then(done).catch(done);
+    });
 });
-
-
-
-// contract('Registry', {reset_state: true}, function(accounts) {
-//   it('should be possible to configure registry', function(done) {
-//     var registrar = Registrar.deployed();
-//     var registry = Registry.deployed();
-//     registry.configure(registrar.address).then(function() {
-//     }).then(function() {
-//       return registry.registrarAddress.call();
-//     }).then(function(result) {
-//       assert.equal(result, registrar.address);
-//     }).then(done).catch(done);
-//   });
-//   it('should be possible to add schema', function(done) {
-//     var registrar = Registrar.deployed();
-//     var registry = Registry.deployed();
-//     registrar.add(accounts[0], "").then(function() {
-//     }).then(function() {
-//       return registry.configure(registrar.address);
-//     }).then(function() {
-//       return registry.addSchema('test');
-//     }).then(function() {
-//       return registry.schemas.call(1);
-//     }).then(function(result) {
-//       assert.equal(result, 'test');
-//     }).then(done).catch(done);
-//   });
-//   it('should be possible to register Thing', function(done) {
-//     var registrar = Registrar.deployed();
-//     var registry = Registry.deployed();
-//     registrar.add(accounts[0], "").then(function() {
-//     }).then(function() {
-//       return registry.configure(registrar.address);
-//     }).then(function() {
-//       return registry.addSchema('test');
-//     }).then(function() {
-//       return registry.create(1, ['0x0012340000000000000000000000000000000000000000000000000000000000'], ['0x1234']);
-//     }).then(function() {
-//       return registry.getThing.call('0x1234');
-//     }).then(function(result) {
-//       assert.equal(result[1][0], '0x0012340000000000000000000000000000000000000000000000000000000000');
-//     }).then(done).catch(done);
-//   });
-//   it('should prohibit to register Thing for unknown schema');
-//   it('should be possible to batch-register Thing', function(done) {
-//     var registrar = Registrar.deployed();
-//     var registry = Registry.deployed();
-//     registrar.add(accounts[0], "").then(function() {
-//     }).then(function() {
-//       return registry.configure(registrar.address);
-//     }).then(function() {
-//       return registry.addSchema('test');
-//     }).then(function() {
-//       return registry.createMany(1, [1, 1], ['0x0012340000000000000000000000000000000000000000000000000000000000', '0x0091230000000000000000000000000000000000000000000000000000000000'], ['0x1234', '0x4321']);
-//     }).then(function() {
-//       return registry.getThing.call('0x4321');
-//     }).then(function(result) {
-//       assert.equal(result[1][0], '0x0091230000000000000000000000000000000000000000000000000000000000');
-//     }).then(done).catch(done);
-//   });
-// });

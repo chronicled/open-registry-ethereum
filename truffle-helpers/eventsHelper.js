@@ -23,7 +23,7 @@ var EventsHelper = function() {
     });
   };
 
-  var waitEvents = function(watcher, count) {
+  var waitEvents = function(watcher, count, transactionHash) {
     return new Promise(function(resolve, reject) {
       var transactionCheck = function() {
         watcher.get(function(err, events) {
@@ -32,6 +32,9 @@ var EventsHelper = function() {
             return reject(err);
           }
           if (events) {
+            // Get only requested events, no need to setupEvents each time.
+            events = events.filter(function(event) {return event.transactionHash == transactionHash});
+
             if (events.length == count) {
               return resolve(events);
             }
@@ -53,15 +56,17 @@ var EventsHelper = function() {
     }
     return new Promise(function(resolve, reject) {
       waitReceipt(transactionHash, watcher.options.address).then(function(logsCount) {
-        return waitEvents(allEventsWatcher, logsCount);
-      }).then(function() {
-        watcher.get(function(err, events) {
-          if (err) {
-            console.log(err);
-            return reject(err);
-          }
-          return resolve(events);
-        });
+        return waitEvents(allEventsWatcher, logsCount, transactionHash);
+      }).then(function(events) {
+        // We alraeady have events, just pass it through.
+        return resolve(events);
+        // watcher.get(function(err, events) {
+        //   if (err) {
+        //     console.log(err);
+        //     return reject(err);
+        //   }
+        //   return resolve(events);
+        // });
       });
     });
   };

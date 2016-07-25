@@ -484,17 +484,18 @@ contract Registry {
         // Put last element in place of deleted one
         if (index != things.length - 1) {
             // Rewire identities of the last Thing to the new prospective index.
-            if (false == _rewireIdentities(things[index].identities, things.length - 1, index, 0)) {
+            if (false == _rewireIdentities(things[things.length - 1].identities, things.length - 1, index, 0)) {
                 // Cannot rewire, should never happen
                 _rewireIdentities(things[index].identities, 0, index, 0); // Rollback
                 return false;
             }
+
+            // "Broadcast" event with identities before they're lost.
+            Deleted(things[index].identities, things[index].ownerAddress);
+
             // Move last Thing to the place of deleted one.
             things[index] = things[things.length - 1];
         }
-
-        // "Broadcast" event with identities before they're lost.
-        Deleted(things[index].identities, things[index].ownerAddress);
 
         // Delete last Thing
         things.length--;
@@ -512,7 +513,7 @@ contract Registry {
         // No such Thing
         if (index == 0) {
             Error(2, _id);
-            throw;
+            return;
         }
         Thing thing = things[index];
         return (thing.identities, thing.data, thing.schemaIndex, schemas[thing.schemaIndex], thing.ownerAddress, thing.isValid);

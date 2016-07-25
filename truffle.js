@@ -18,6 +18,6 @@ module.exports = {
   rpc: {
     host: "localhost",
     port: 8545,
-    gas: 3501592 // A bit higher that initial limit. Current one is 4M+
+    gas: 37000001592 // A bit higher that initial limit. Current one is 4M+
   }
 };
