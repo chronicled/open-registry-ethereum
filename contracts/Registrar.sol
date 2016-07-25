@@ -2,7 +2,7 @@ contract Registrar {
     address public certificationAuthority;
 
     /**
-    * Creation event that gets triggered when a new registrant gets created
+    * Creation event that gets triggered when a new registrant gets created.
     * event
     * @param registrant - The registrant address.
     * @param authority - The CA address.
@@ -11,7 +11,7 @@ contract Registrar {
     event Creation(address indexed registrant, address authority, string data);
 
     /**
-    * Update event that gets triggered when a new registrant id updated
+    * Update event that gets triggered when a new registrant id updated.
     * event
     * @param registrant - The registrant address.
     * @param authority - The CA address.
@@ -37,7 +37,7 @@ contract Registrar {
     Registrant[] public registrants;
 
     /**
-    * Function cant have ether.
+    * Function can't have ether.
     * modifier
     */
     modifier noEther() {
@@ -46,7 +46,7 @@ contract Registrar {
     }
 
     /**
-    * Construct registry with and starting registrants lenght of one, and CA as msg.sender
+    * Construct registry with starting registrants lenght of one, and CA as msg.sender.
     * constructor
     */
     function Registrar() {
@@ -55,14 +55,14 @@ contract Registrar {
     }
 
     /**
-    * Add a registrant, only CA allowed
+    * Add a registrant, only CA allowed.
     * public_function
     * @param _registrant - The registrant address.
     * @param _data - The registrant data string.
     */
     function add(address _registrant, string _data) noEther returns (bool) {
         if (msg.sender != certificationAuthority || registrantIndex[_registrant] > 0) {
-            Error(1); //permission denied
+            Error(1); // permission denied
             return false;
         }
         uint pos = registrants.length++;
@@ -73,14 +73,14 @@ contract Registrar {
     }
 
     /**
-    * Edit a registrant, only CA allowed
+    * Edit a registrant, only CA allowed.
     * public_function
     * @param _registrant - The registrant address.
     * @param _data - The registrant data string.
     */
     function edit(address _registrant, string _data, bool _active) noEther returns (bool) {
         if (msg.sender != certificationAuthority || registrantIndex[_registrant] == 0) {
-            Error(1); //permission denied
+            Error(1); // permission denied
             return false;
         }
         Registrant registrant = registrants[registrantIndex[_registrant]];
@@ -91,13 +91,13 @@ contract Registrar {
     }
 
     /**
-    * Set new CA address, only CA allowed
+    * Set new CA address, only CA allowed.
     * public_function
     * @param _ca - The new CA address.
     */
     function setNextAuthority(address _ca) noEther returns (bool) {
         if (msg.sender != certificationAuthority) {
-            Error(1); //permission denied
+            Error(1); // permission denied
             return false;
         }
         certificationAuthority = _ca;
@@ -108,9 +108,7 @@ contract Registrar {
     * Function to reject simple sends to the contract.
     * fallback_function
     */
-    function () noEther {
-        throw;
-    }
+    function () noEther {}
 
     /**
     * Get if a regsitrant is active or not.
@@ -123,14 +121,14 @@ contract Registrar {
     }
 
     /**
-    * Get all the active registrants.
+    * Get all the registrants.
     * constant_function
     */
     function getRegistrants() constant returns (address[]) {
-        address[] memory active = new address[](registrants.length-1);
+        address[] memory result = new address[](registrants.length-1);
         for (uint j = 1; j < registrants.length; j++) {
-            active[j-1] = registrants[j].addr;
+            result[j-1] = registrants[j].addr;
         }
-        return active;
+        return result;
     }
 }

@@ -39,7 +39,26 @@ contract('Registry', {reset_state: true}, function(accounts) {
       assert.equal(result[1][0], '0x0012340000000000000000000000000000000000000000000000000000000000');
     }).then(done).catch(done);
   });
-  it('should prohibit to register Thing for unknown schema');
+  it('should prohibit to register Thing for unknown schema', function(done) {
+    var registrar = Registrar.deployed();
+    var registry = Registry.deployed();
+    registrar.add(accounts[0], "").then(function() {
+    }).then(function() {
+      return registry.configure(registrar.address);
+    }).then(function() {
+      return registry.addSchema('test');
+    }).then(function() {
+      return registry.create.call(2, ['0x0012340000000000000000000000000000000000000000000000000000000000'], ['0x1234']);
+    }).then(function(result) {
+      assert.isFalse(result);
+      return registry.create.call(3, ['0x0012340000000000000000000000000000000000000000000000000000000000'], ['0x1234']);
+    }).then(function(result) {
+      assert.isFalse(result);
+      return registry.create.call(0, ['0x0012340000000000000000000000000000000000000000000000000000000000'], ['0x1234']);
+    }).then(function(result) {
+      assert.isFalse(result);
+    }).then(done).catch(done);
+  });
   it('should be possible to batch-register Thing', function(done) {
     var registrar = Registrar.deployed();
     var registry = Registry.deployed();
