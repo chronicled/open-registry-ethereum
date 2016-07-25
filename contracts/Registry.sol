@@ -127,7 +127,7 @@ contract Registry {
         }
         else {
             // _ids array current element pointer.
-            // uint32 technically allows to put 128Gb of Identites into one Thing.
+            // uint32 technically allows to put 128Gb of Identities into one Thing.
             uint32 cell = uint32(things[_thingIndex].identities.length);
             // Copy new IDs to the end of array one by one
             things[_thingIndex].identities.length += _ids.length;
@@ -143,11 +143,11 @@ contract Registry {
     * Point provided Identities to the desired "things" array index in the lookup hash table idToThing.
     * internal_function
     * @param _ids - Identities of the Thing.
-    * @param _oldIndex - Previous index that this Identities pointed to, prevents accidental rewirings and duplicate Identities.
+    * @param _oldIndex - Previous index that this Identities pointed to, prevents accidental rewiring and duplicate Identities.
     * @param _newIndex - things array index the Identities should point to.
     * @param _newIndex - things array index the Identities should point to.
     * @param _idsForcedLength — Internal use only. Zero by default. Used to revert side effects if execution fails at any point.
-    *       Prevents infinity loop in recursion. Though recursion is not desireable, it's used to avoid overcomplication of the code.
+    *       Prevents infinity loop in recursion. Though recursion is not desirable, it's used to avoid over-complication of the code.
     */
     function _rewireIdentities(bytes32[] _ids, uint _oldIndex, uint _newIndex, uint32 _idsForcedLength) internal returns(bool) {
         // Current ID cell pointer
@@ -200,7 +200,7 @@ contract Registry {
             if ((idLength + urnNamespaceLength + 3) % 32 != 0) {
                 // Identity uses one more cell partially
                 cellsPerId++;
-                // For new identity, ensure that complies with the format, specifally padding is done with 0s.
+                // For new identity, ensure that complies with the format, specifically padding is done with 0s.
                 // This prevents from adding duplicated identities, which might be accepted because generate a different hash.
                 if (_oldIndex == 0) {
                     // How many bytes the ID occupies in the last cell.
