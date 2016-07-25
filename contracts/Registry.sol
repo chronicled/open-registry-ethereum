@@ -2,6 +2,7 @@ import "Registrar.sol";
 
 contract Registry {
     address public registrarAddress;
+    address public owner;
 
     /**
     * Creation event that gets triggered when a thing is created.
@@ -87,6 +88,7 @@ contract Registry {
     function Registry() {
         things.length++;
         schemas.length++;
+        owner = msg.sender;
     }
 
     /**
@@ -201,7 +203,7 @@ contract Registry {
     * @param _registrarAddress - The registrar address.
     */
     function configure(address _registrarAddress) noEther returns (bool) {
-        if (registrarAddress != 0x0) {
+        if ((registrarAddress != 0x0) || (msg.sender != owner)) {
             Error(3, bytes32(registrarAddress));
             return false;
         }
@@ -286,8 +288,7 @@ contract Registry {
     * Add a new schema, only CA allowed.
     * public_function
     * @param _schema - New schema string to add.
-    * The string should use ;#; characters as seprators between name, description and definition, example:
-    * schameName + ';#;' + schemaDescription + ";#;" + schemaDefinition
+    * The string should use the schema protobuf on the schemas folder on sdk
     */
     function addSchema(string _schema) isCertificationAuthority(msg.sender) noEther returns (uint) {
         uint pos = schemas.length++;
