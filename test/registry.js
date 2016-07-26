@@ -280,7 +280,7 @@ contract('Registry', {reset_state: true}, function(accounts) {
       }).catch(done);
     });
 
-    it('Creating Things', function(done) {
+    it('Creating Many Things', function(done) {
       var registry = Registry.deployed();
       var registrar = Registrar.deployed();
 
@@ -339,7 +339,137 @@ contract('Registry', {reset_state: true}, function(accounts) {
         return registry.getThing(packURN(ids[0]));
       }).then(function(thing) {
         assert(thing);
-        console.log(thing);
+        return;
+      }).then(function() {
+        done();
+      }).catch(done);
+    });
+
+    it('Creating Many Things: Schema index out of range', function(done) {
+      var registry = Registry.deployed();
+      var registrar = Registrar.deployed();
+
+      var ids1 = [
+        "pbk:ec:secp256r1:0260fed4ba255a9d31c961eb74c6356d68c049b8923b61fa6ce669622e60f29f00",
+        "ble:1.0:0a153c993d00",
+        "pbk:rsa:2048:8c33d1bafbb20a80f0f95ac8cb9f060d39b5744790aa7d96cd2977398257b2ac1396aebb62182c5c6f8a8527e62af27e8853187e1d7962f0ef030129bc334e8471b4352c594c8b413835f882779038a56f44c9a4d189f8e0702087ee04a50a1e84f52443c48c3176be3be17509bf142477e5eeeaf4a41dd87e9b6ca5cea62342dc0e08ae5ab701a4016bd723113a0cd3cf0be5b472f23355981be5191c6c84429cc4bb4270d18bb923ca373a0950d74b83545bf40d9283b3a2cbe0173ee224c155d8615de38cb58cb5e23f30b7edf4be2ccd7a30184aa700ffcbf1f31ea9ef1961b89bc58bc6d4749099fa0a5503fd6e5cbdd42357002be28564663b305fd600",
+      ];
+
+      var ids2 = [
+        "pbk:ec:secp256r1:0260fed4ba255a9d31c961eb74c6356d68c049b8923b61fa6ce669622e60f29f01",
+        "ble:1.0:0a153c993d01",
+        "pbk:rsa:2048:8c33d1bafbb20a80f0f95ac8cb9f060d39b5744790aa7d96cd2977398257b2ac1396aebb62182c5c6f8a8527e62af27e8853187e1d7962f0ef030129bc334e8471b4352c594c8b413835f882779038a56f44c9a4d189f8e0702087ee04a50a1e84f52443c48c3176be3be17509bf142477e5eeeaf4a41dd87e9b6ca5cea62342dc0e08ae5ab701a4016bd723113a0cd3cf0be5b472f23355981be5191c6c84429cc4bb4270d18bb923ca373a0950d74b83545bf40d9283b3a2cbe0173ee224c155d8615de38cb58cb5e23f30b7edf4be2ccd7a30184aa700ffcbf1f31ea9ef1961b89bc58bc6d4749099fa0a5503fd6e5cbdd42357002be28564663b305fd601",
+      ];
+
+      var ids3 = [
+        "pbk:ec:secp256r1:0260fed4ba255a9d31c961eb74c6356d68c049b8923b61fa6ce669622e60f29f02",
+        "ble:1.0:0a153c993d02",
+        "pbk:rsa:2048:8c33d1bafbb20a80f0f95ac8cb9f060d39b5744790aa7d96cd2977398257b2ac1396aebb62182c5c6f8a8527e62af27e8853187e1d7962f0ef030129bc334e8471b4352c594c8b413835f882779038a56f44c9a4d189f8e0702087ee04a50a1e84f52443c48c3176be3be17509bf142477e5eeeaf4a41dd87e9b6ca5cea62342dc0e08ae5ab701a4016bd723113a0cd3cf0be5b472f23355981be5191c6c84429cc4bb4270d18bb923ca373a0950d74b83545bf40d9283b3a2cbe0173ee224c155d8615de38cb58cb5e23f30b7edf4be2ccd7a30184aa700ffcbf1f31ea9ef1961b89bc58bc6d4749099fa0a5503fd6e5cbdd42357002be28564663b305fd602",
+      ];
+
+      var batch_ids = [
+        ids[0], ids[1], ids[2],
+        ids1[0], ids1[1], ids1[2],
+        ids2[0], ids2[1], ids2[2],
+        ids3[0], ids3[1], ids3[2]
+      ];
+      var ids_count = [
+        3, 
+        3
+        // 3, 
+        // 3
+      ];
+      var data_array = [
+        "0x1", "0x2", 
+        "0x3", "0x4",
+        "0x5", "0x6", 
+        "0x7", "0x8"
+      ];
+      var data_lengths = [
+        2, 
+        2,
+        2, 
+        2
+      ];
+
+      var chunkedIds = UtilURN.packer.encodeAndChunk(batch_ids);
+      var batch = [chunkedIds, ids_count, data_array, data_lengths, 5];
+      registry.configure(registrar.address).then(function(txHash) {
+        return registry.createSchema('This is a test');
+      }).then(function(txHash) {
+        return registrar.add(accounts[0], "");
+      }).then(function() {
+        return registry.createThings.apply(null, batch);  
+      }).then(function(result) {
+        return registry.getThing(packURN(ids[0]));
+      }).then(function(thing) {
+        assert.equal(thing[5], false);
+        return;
+      }).then(function() {
+        done();
+      }).catch(done);
+    });
+
+    it.skip('Creating Many Things: Incorrect ids per Thing', function(done) {
+      var registry = Registry.deployed();
+      var registrar = Registrar.deployed();
+
+      var ids1 = [
+        "pbk:ec:secp256r1:0260fed4ba255a9d31c961eb74c6356d68c049b8923b61fa6ce669622e60f29f00",
+        "ble:1.0:0a153c993d00",
+        "pbk:rsa:2048:8c33d1bafbb20a80f0f95ac8cb9f060d39b5744790aa7d96cd2977398257b2ac1396aebb62182c5c6f8a8527e62af27e8853187e1d7962f0ef030129bc334e8471b4352c594c8b413835f882779038a56f44c9a4d189f8e0702087ee04a50a1e84f52443c48c3176be3be17509bf142477e5eeeaf4a41dd87e9b6ca5cea62342dc0e08ae5ab701a4016bd723113a0cd3cf0be5b472f23355981be5191c6c84429cc4bb4270d18bb923ca373a0950d74b83545bf40d9283b3a2cbe0173ee224c155d8615de38cb58cb5e23f30b7edf4be2ccd7a30184aa700ffcbf1f31ea9ef1961b89bc58bc6d4749099fa0a5503fd6e5cbdd42357002be28564663b305fd600",
+      ];
+
+      var batch_ids = [
+        ids[0], ids[1], ids[2],
+        ids1[0], ids1[1], ids1[2]
+      ];
+
+      var chunkedIds = UtilURN.packer.encodeAndChunk(batch_ids);
+      var batch = [chunkedIds, [5,5], ['0x01', '0x02'], [1,1], 1];
+
+      registry.configure(registrar.address).then(function(txHash) {
+        return registry.createSchema('This is a test');
+      }).then(function(txHash) {
+        return registrar.add(accounts[0], "");
+      }).then(function(txHash) {
+        return registry.createThings.apply(null, batch);
+      }).then(function(txHash) {
+        return registry.getThing(packURN(ids[0]));
+      }).then(function(thing) {
+        return;
+      }).then(function() {
+        done();
+      }).catch(done);
+    });
+
+    it.skip('Creating Many Things: Incorrect data length', function(done) {
+      var registry = Registry.deployed();
+      var registrar = Registrar.deployed();
+
+      var ids1 = [
+        "pbk:ec:secp256r1:0260fed4ba255a9d31c961eb74c6356d68c049b8923b61fa6ce669622e60f29f00",
+        "ble:1.0:0a153c993d00",
+        "pbk:rsa:2048:8c33d1bafbb20a80f0f95ac8cb9f060d39b5744790aa7d96cd2977398257b2ac1396aebb62182c5c6f8a8527e62af27e8853187e1d7962f0ef030129bc334e8471b4352c594c8b413835f882779038a56f44c9a4d189f8e0702087ee04a50a1e84f52443c48c3176be3be17509bf142477e5eeeaf4a41dd87e9b6ca5cea62342dc0e08ae5ab701a4016bd723113a0cd3cf0be5b472f23355981be5191c6c84429cc4bb4270d18bb923ca373a0950d74b83545bf40d9283b3a2cbe0173ee224c155d8615de38cb58cb5e23f30b7edf4be2ccd7a30184aa700ffcbf1f31ea9ef1961b89bc58bc6d4749099fa0a5503fd6e5cbdd42357002be28564663b305fd600",
+      ];
+
+      var batch_ids = [
+        ids[0], ids[1], ids[2],
+        ids1[0], ids1[1], ids1[2]
+      ];
+
+      var chunkedIds = UtilURN.packer.encodeAndChunk(batch_ids);
+      var batch = [chunkedIds, [3,3], ['0x01', '0x02'], [2,2], 1];
+
+      registry.configure(registrar.address).then(function(txHash) {
+        return registry.createSchema('This is a test');
+      }).then(function(txHash) {
+        return registrar.add(accounts[0], "");
+      }).then(function(txHash) {
+        return registry.createThings.apply(null, batch);
+      }).then(function(txHash) {
+        return registry.getThing(packURN(ids[0]));
+      }).then(function(thing) {
         return;
       }).then(function() {
         done();
@@ -442,6 +572,30 @@ contract('Registry', {reset_state: true}, function(accounts) {
         return registry.addIdentities(selection, packURN(newId));
       }).then(function(txHash) {
         return registry.updateThingData.call(selection, ['0x09128049214'], 5);
+      }).then(function(result) {
+        assert.equal(result, false);
+        return;
+      }).then(function() {
+        done();
+      }).catch(done);
+    });
+
+    it('Updating Thing Failure: No thing with ID', function(done) {
+      var registry = Registry.deployed();
+      var registrar = Registrar.deployed();
+
+      var chunkedIds = UtilURN.packer.encodeAndChunk(ids);
+      var params = [chunkedIds, ["0x1","0x2"], 1];
+
+      var selection;
+      registry.configure(registrar.address).then(function(txHash) {
+        return registry.createSchema('This is a test');
+      }).then(function(txHash) {
+        return registrar.add(accounts[0], "");
+      }).then(function(txHash) {
+        return registry.createThing.apply(null, params);
+      }).then(function(txHash) {
+        return registry.addIdentities.call(packURN(newId), packURN(newId));
       }).then(function(result) {
         assert.equal(result, false);
         return;
