@@ -198,7 +198,12 @@ contract('Registry', {reset_state: true}, function(accounts) {
         })
         .then(function(txHash) {
           return waitForTransaction(txHash);
-        }).then(done).catch(done);
+        })
+        .then(done)
+        .catch(function(err) {
+          console.log(err);
+          done(err);
+        });
       });
     });
   });
