@@ -1,4 +1,22 @@
 'use strict';
+var Promise = require('bluebird');
+
+var Provider = require('../../open-registry-sdk/lib/provider.js');
+var RegistrantSdk = require('../../open-registry-sdk/lib/registrant.js');
+var RegistrarSdk = require('../../open-registry-sdk/lib/certifier.js');
+var ConsumerSdk = require('../../open-registry-sdk/lib/consumer.js');
+var secretSeed = "galaxy blue prison pudding mind ozone obey plunge resemble repeat such other";
+// var privateKey = "0xf16061d4912b559390a378b3e223e726fa889b89e0635d04cbaec65d0efc6067";
+var address = "0x85bd6dbf8e579feef62439c4dcf2b2100ce22808";
+
+var singleId = 'hello:12345678'
+var serviceUrl = 'http://hello.com';
+
+var severalIds = ["pbk:ec:secp256r1:0211fed4ba255a9d31c961eb74c6356d68c049b8923b61fa6ce669622e60f29fb6", "ble:1.0:aabbccddeeff", "pbk:ec:secp256r1:0222fed4ba255a9d31c961eb74c6356d68c049b8923b61fa6ce669622e60f29fb6"]
+var things = [
+  {identities: severalIds.slice(0, 2), data: {service_url: 'abc.com'}},
+  {identities: severalIds.slice(-1), data: {service_url: 'http://chronicled.com/'}},
+];
 
 var UtilURN = require('../../open-registry-utils/lib/urn.js');
 var packURN = UtilURN.packer.encodeAndChunk.bind(UtilURN.packer);
@@ -15,7 +33,7 @@ var newId = "nfc:1.0:20153c913d9c4a";
 var thingData = ["0x1200000000000000000000000000000000000000000000000000000000000000","0x1400000000000000000000000000000000000000000000000000000000000000"];
 
 contract('Registry', {reset_state: true}, function(accounts) {
-  describe('OPENSRC-80: Adding new identities to a Thing', function() {
+  describe.skip('OPENSRC-80: Adding new identities to a Thing', function() {
     it('should add a new identity to a Thing', function(done) {
       var registry = Registry.deployed();
       var registrar = Registrar.deployed();
@@ -146,4 +164,60 @@ contract('Registry', {reset_state: true}, function(accounts) {
       .then(done).catch(done);
     });
   });
+  
+  describe('OPENSRC-96: Dev can add new identity to a Thing in Open Registry (Registrant SDK)', function() {
+    var registrantSdk;
+    var registrarSdk;
+    var consumerSdk;
+    var provider;
+
+    it('should add a new thing to the registry through SDK', function(done) {
+      var registry = Registry.deployed();
+      var registrar = Registrar.deployed();
+      
+      provider = new Provider("http://localhost:8545", secretSeed, function() {
+        registrantSdk = new RegistrantSdk(provider, registry.address);
+        registrarSdk = new RegistrarSdk(provider, registry.address, registrar.address);
+        consumerSdk = new ConsumerSdk(provider, registry.address, registrar.address);
+      
+        var chunkedIds = UtilURN.packer.encodeAndChunk(ids);
+        var createThingParams = [chunkedIds, thingData, 1];
+        var lookupId = packURN(ids[randNum(ids.length)]);
+
+        return registry.configure(registrar.address).then(function(txHash) {
+          assert.notEqual(txHash, null);
+          return registry.createSchema('This is a test');
+        })
+        .then(function(txHash) {
+          assert.notEqual(txHash, null);
+          return registrar.add(address, "Registrant data");
+        })
+        .then(function(txHash) {
+          assert.notEqual(txHash, null);
+          return registrantSdk.createThing([singleId], {service_url: serviceUrl}, 1);
+        })
+        .then(function(txHash) {
+          return waitForTransaction(txHash);
+        }).then(done).catch(done);
+      });
+    });
+  });
 });
+
+var waitForTransaction = function (hash) {
+  return new Promise(function(resolve, reject) {
+    var interval = setInterval(function() {
+      web3.eth.getTransactionReceipt(hash, function(err, receipt) {
+        if (err != null) {
+          clearInterval(interval);
+
+          return reject(err);
+        }
+        if (receipt != null) {
+          clearInterval(interval);
+          resolve(receipt);
+        }
+      });
+    }, 500);
+  });
+};
