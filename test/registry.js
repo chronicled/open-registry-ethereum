@@ -214,8 +214,11 @@ contract('Registry'/*, {reset_state: true}*/, function(accounts) {
     it('Basic SDK methods', function(done) {
       done();
       return;
+
       var Provider = require('../../open-registry-sdk/lib/provider.js');
       var RegistrantSdk = require('../../open-registry-sdk/lib/registrant.js');
+      var RegistrarSdk = require('../../open-registry-sdk/lib/certifier.js');
+      var ConsumerSdk = require('../../open-registry-sdk/lib/consumer.js');
 
 
       var registry = Registry.deployed();
@@ -262,8 +265,10 @@ contract('Registry'/*, {reset_state: true}*/, function(accounts) {
 
 
         var registrantSdk = new RegistrantSdk(provider, registry.address);
+        var registrarSdk = new RegistrarSdk(provider, registry.address, registrar.address);
+        var consumerSdk = new ConsumerSdk(provider, registry.address, registrar.address);
 
-        registrar.add(address, "").then(function(txHash) {
+        registrar.add(address, "Regsitrant data HEX").then(function(txHash) {
           assert.notEqual(txHash, null);
 
           // Using schema created by initial tests
@@ -271,8 +276,15 @@ contract('Registry'/*, {reset_state: true}*/, function(accounts) {
 
         }).then(function(txHash){
           return waitForTransaction(txHash);
+        }).then(function(){
+          return new Promise(function(resolve){setTimeout(resolve, 5000)});
         }).then(function(receipt){
 
+            return consumerSdk.getRegistrant(address);
+        }).then(function(registrant){
+          console.log(registrant);
+          done();
+          return ;
           return registrantSdk.createThings(things, 1);
         }).then(function(){
           return new Promise(function(resolve){setTimeout(resolve, 5000)});
