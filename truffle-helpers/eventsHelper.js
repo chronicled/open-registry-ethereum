@@ -58,7 +58,7 @@ var EventsHelper = function() {
       waitReceipt(transactionHash, watcher.options.address).then(function(logsCount) {
         return waitEvents(allEventsWatcher, logsCount, transactionHash);
       }).then(function(events) {
-        // We alraeady have events, just pass it through.
+        // We already have events, just pass it through.
         return resolve(events);
         // watcher.get(function(err, events) {
         //   if (err) {
