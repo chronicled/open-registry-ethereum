@@ -434,8 +434,8 @@ contract('MultiAccess', {reset_state: true}, function(accounts) {
     var watcher = multiAccess.OwnerChanged();
     var owner = accounts[0];
     var newOwner = accounts[1];
+    eventsHelper.setupEvents(multiAccess);
     multiAccess.multiAccessChangeOwner(owner, newOwner).then(function(txHash) {
-      eventsHelper.setupEvents(multiAccess);
       return eventsHelper.getEvents(txHash, watcher);
     }).then(function(events) {
       assert.equal(events.length, 1);
