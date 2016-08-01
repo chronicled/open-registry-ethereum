@@ -10,14 +10,15 @@ module.exports = {
     "images/": "images/"
   },
   deploy: [
-    // "MultiAccess",
-    // "MultiAccessTester",
+    "MultiAccess",
+    "MultiAccessTester",
+    "MultiAccessTestable",
     "Registrar",
     "Registry"
   ],
   rpc: {
     host: "localhost",
     port: 8545,
-    gas: 37000001592 // A bit higher that initial limit. Current one is 4M+
+    gas: 3700000 // A bit higher that initial limit. Current one is 4M+
   }
 };
