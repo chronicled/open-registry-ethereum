@@ -218,7 +218,7 @@ contract Registry {
     * @param _data - The data array.
     * @param _identities - The identities array.
     */
-    function create(uint _schemaIndex, bytes32[] _data, bytes32[] _identities) isRegistrant(msg.sender) noEther returns (bool) {
+    function createThing(bytes32[] _identities, bytes32[] _data, uint _schemaIndex) isRegistrant(msg.sender) noEther returns (bool) {
         return _create(msg.sender, _schemaIndex, _data, _identities);
     }
 
@@ -230,7 +230,7 @@ contract Registry {
     * @param _data - The data array.
     * @param _identities - The identities array.
     */
-    function update(uint _pos, uint _schemaIndex, bytes32[] _data, bytes32[] _identities) isRegistrant(msg.sender) noEther returns (bool) {
+    function updateThingData(uint _pos, bytes32[] _identities, bytes32[] _data, uint _schemaIndex) isRegistrant(msg.sender) noEther returns (bool) {
         return _update(msg.sender, _pos, _schemaIndex, _data, _identities);
     }
 
@@ -244,7 +244,7 @@ contract Registry {
     * @param _data - The data array.
     * @param _identities - The identities array.
     */
-    function createMany(uint _schemaIndex, uint8[] _dataLength, bytes32[] _data, bytes32[] _identities) isRegistrant(msg.sender) noEther returns (bool) {
+    function createThings(bytes32[] _identities, uint16[] _idsPerThing, bytes32[] _data, uint8[] _dataLength, uint _schemaIndex) isRegistrant(msg.sender) noEther returns (bool) {
         uint thingPosition = 0;
         for (uint i = 0; i < _identities.length; i++) {
             uint8 length = _dataLength[i];
@@ -270,7 +270,7 @@ contract Registry {
     * @param _pos - The index position of the thing.
     * @param _identity - The identity to link.
     */
-    function linkIdentity(uint _pos, bytes32 _identity) isRegistrant(msg.sender) noEther returns (bool success) {
+    function addIdentities(uint _pos, bytes32 _identity) isRegistrant(msg.sender) noEther returns (bool success) {
         return _linkIdentity(msg.sender, _pos, _identity);
     }
 

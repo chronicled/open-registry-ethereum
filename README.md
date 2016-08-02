@@ -16,6 +16,7 @@ $ npm install -g ethereumjs-testrpc
 ### Test contracts
 
 ```
+$ testrpc
 $ truffle test
 ```
 

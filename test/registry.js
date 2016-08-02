@@ -32,7 +32,7 @@ contract('Registry', {reset_state: true}, function(accounts) {
     }).then(function() {
       return registry.addSchema('test');
     }).then(function() {
-      return registry.create(1, ['0x0012340000000000000000000000000000000000000000000000000000000000'], ['0x1234']);
+      return registry.createThing(['0x1234'], ['0x0012340000000000000000000000000000000000000000000000000000000000'], 1);
     }).then(function() {
       return registry.getThing.call('0x1234');
     }).then(function(result) {
@@ -48,13 +48,13 @@ contract('Registry', {reset_state: true}, function(accounts) {
     }).then(function() {
       return registry.addSchema('test');
     }).then(function() {
-      return registry.create.call(2, ['0x0012340000000000000000000000000000000000000000000000000000000000'], ['0x1234']);
+      return registry.createThing.call(['0x1234'], ['0x0012340000000000000000000000000000000000000000000000000000000000'], 2);
     }).then(function(result) {
       assert.isFalse(result);
-      return registry.create.call(3, ['0x0012340000000000000000000000000000000000000000000000000000000000'], ['0x1234']);
+      return registry.createThing.call(['0x1234'], ['0x0012340000000000000000000000000000000000000000000000000000000000'], 3);
     }).then(function(result) {
       assert.isFalse(result);
-      return registry.create.call(0, ['0x0012340000000000000000000000000000000000000000000000000000000000'], ['0x1234']);
+      return registry.createThing.call(['0x1234'], ['0x0012340000000000000000000000000000000000000000000000000000000000'], 2);
     }).then(function(result) {
       assert.isFalse(result);
     }).then(done).catch(done);
@@ -68,7 +68,7 @@ contract('Registry', {reset_state: true}, function(accounts) {
     }).then(function() {
       return registry.addSchema('test');
     }).then(function() {
-      return registry.createMany(1, [1, 1], ['0x0012340000000000000000000000000000000000000000000000000000000000', '0x0091230000000000000000000000000000000000000000000000000000000000'], ['0x1234', '0x4321']);
+      return registry.createThings(['0x1234', '0x4321'], [], ['0x0012340000000000000000000000000000000000000000000000000000000000', '0x0091230000000000000000000000000000000000000000000000000000000000'], [1, 1], 1);
     }).then(function() {
       return registry.getThing.call('0x4321');
     }).then(function(result) {
