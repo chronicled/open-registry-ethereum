@@ -18,10 +18,23 @@ var thingData = ["0x120000000000000000000000000000000000000000000000000000000000
 
 
 
-contract('Registry'/*, {reset_state: true}*/, function(accounts) {
-
+contract('Registry', function(accounts) {
     var eventsHelper = require('../truffle-helpers/eventsHelper.js');
     // Todo: replace to utils component when deployed
+
+    var registrar;
+    var registry;
+
+    var createdEvent;
+    var updatedEvent;
+    var deletedEvent;
+    var errorEvent;
+
+    var chunkedIds = UtilURN.packer.encodeAndChunk(ids);
+    var createThingParams = [chunkedIds, thingData, 1];
+    var lookUpId = ids[randNum(ids.length)];
+    // Shared object between "it" blocks
+    var shared = {};
 
     it('should be possible to configure registry', function(done) {
       var registrar = Registrar.deployed();
@@ -38,46 +51,46 @@ contract('Registry'/*, {reset_state: true}*/, function(accounts) {
 
 
 
+
     var schemaContent = "message Thing {" +
                         "required string service_url = 1;" +
                         "}"
-    ;
+                        ;
 
 
-    it('Basic workflow', function(done) {
-      var registrar = Registrar.deployed();
-      var registry = Registry.deployed();
+    it('Create Schema', function(done) {
+      // Setting shared in this test contract test block variables
+      registrar = Registrar.deployed();
+      registry = Registry.deployed();
 
       eventsHelper.setupEvents(registry);
-      var createdEvent = registry.Created();
-      var updatedEvent = registry.Updated();
-      var deletedEvent = registry.Deleted();
-      var errorEvent = registry.Error();
+      createdEvent = registry.Created();
+      updatedEvent = registry.Updated();
+      deletedEvent = registry.Deleted();
+      errorEvent = registry.Error();
 
-
-      var chunkedIds = UtilURN.packer.encodeAndChunk(ids);
-      var createThingParams = [chunkedIds, thingData, 1];
-
-      var lookUpId = ids[randNum(ids.length)];
-
-      var shared = {};
-
-      registry.configure(registrar.address).then(function(txHash) {
+      registry.createSchema(schemaContent)
+      .then(function(txHash) {
         assert.notEqual(txHash, null);
+        done();
+      });
+    });
 
-        // Add Schema
-        // Todo: pass real schema
-        return registry.createSchema(schemaContent);
-      }).then(function(txHash) {
-        assert.notEqual(txHash, null);
 
-        // Add Registrant
-        return registrar.add(accounts[0], "");
-      }).then(function(txHash){
+    it('Add registrar', function(done) {
+      // Add Registrant
+      registrar.add(accounts[0], "")
+      .then(function(txHash){
           assert.notEqual(txHash, null);
-          // Check return value
-          return registry.createThing.call.apply(null, createThingParams);
-      }).then(function(result) {
+          done();
+      });
+    });
+
+
+    it('Create Thing', function(done) {
+      // Check return value
+      registry.createThing.call.apply(null, createThingParams)
+      .then(function(result) {
         assert.equal(result, true);
 
         // Creating Thing through transaction
@@ -92,10 +105,14 @@ contract('Registry'/*, {reset_state: true}*/, function(accounts) {
         var eventParams = events[0].args;
         // Same Ids as provided
         assert.deepEqual(eventParams.ids, chunkedIds);
+        done();
+      });
+    });
 
-        // Can add Identity using any of the previously added IDs as parameter
-        return registry.addIdentities.call(packURN(lookUpId), packURN(newId));
-      }).then(function(result) {
+    it('Add Identities', function(done) {
+      // Can add Identity using any of the previously added IDs as parameter
+      registry.addIdentities.call(packURN(lookUpId), packURN(newId))
+      .then(function(result) {
         assert.equal(result, true);
 
         // Can add Identity to existing Thing.
@@ -106,38 +123,48 @@ contract('Registry'/*, {reset_state: true}*/, function(accounts) {
         return eventsHelper.getEvents(txHash, updatedEvent);
       }).then(function(events) {
         assert.deepEqual(events[0].args.ids, packURN(lookUpId));
+        done();
+      });
+    });
 
-        // Can lookup Thing by any of the IDs
-        return new Promise(function(resolve, reject) {
-          var liveCalls = 0;
-          var currentIds = ids.concat(newId);
-          currentIds.forEach(function(id) {
-            liveCalls++;
-            registry.getThing.call(packURN(id)).then(function(thing) {
-              assert.deepEqual(thing[0], packURN(currentIds));
-              // Is data equal to original
-              assert.deepEqual(thing[1], thingData);
-              assert.equal(thing[3], schemaContent);
+    it('Look up Thing by any Identity', function(done) {
+      // Can lookup Thing by any of the IDs
+      new Promise(function(resolve, reject) {
+        var liveCalls = 0;
+        var currentIds = ids.concat(newId);
+        currentIds.forEach(function(id) {
+          liveCalls++;
+          registry.getThing.call(packURN(id)).then(function(thing) {
+            assert.deepEqual(thing[0], packURN(currentIds));
+            // Is data equal to original
+            assert.deepEqual(thing[1], thingData);
+            assert.equal(thing[3], schemaContent);
 
-              if (--liveCalls == 0) resolve();
-            });
+            if (--liveCalls == 0) resolve();
           });
         });
-      }).then(function() {
+      }).then(done);
+    });
 
-        // Check maximum possible Identity schema length, with really big identity (110 bytes32 cell, ~3.5Kb)
-        shared.maxId = Array(256).join('s') + ":" + Array(3500 * 2 + 1).join('f');
-        return registry.createThing(packURN(shared.maxId), ["0x1","0x2"], 1);
-      }).then(function(txHash) {
+    it('Max Identity schema length + long identity', function(done) {
+      // Check maximum possible Identity schema length, with really big identity (110 bytes32 cell, ~3.5Kb)
+      shared.maxId = Array(256).join('s') + ":" + Array(3500 * 2 + 1).join('f');
+
+      registry.createThing(packURN(shared.maxId), ["0x1","0x2"], 1)
+      .then(function(txHash) {
         assert.notEqual(txHash, null);
         // Created Event contains whole id
         return eventsHelper.getEvents(txHash, createdEvent);
       }).then(function(events) {
         assert.deepEqual(events[0].args.ids, packURN(shared.maxId));
+        done();
+      });
+    });
 
-        // Duplication is prevented. Total
-        return registry.createThing.apply(null, createThingParams);
-      }).then(function(txHash) {
+    it('Duplicate Identites are not allowed', function(done) {
+      // Duplication is prevented. Total
+      registry.createThing.apply(null, createThingParams)
+      .then(function(txHash) {
         assert.notEqual(txHash, null);
         return eventsHelper.getEvents(txHash, errorEvent);
       }).then(function(events) {
@@ -157,11 +184,14 @@ contract('Registry'/*, {reset_state: true}*/, function(accounts) {
         var args = events[0].args;
         assert.equal(args.code, 1);
         assert.deepEqual(args.reference, shared.overlappingIds);
+        done();
+      });
+    });
 
-
-        // Can delete record, all others are still accessible
-        return registry.deleteThing(packURN(ids[randNum(ids.length)]));
-      }).then(function(txHash) {
+    it('Delete Thing', function(done) {
+      // Can delete record, all others are still accessible
+      registry.deleteThing(packURN(ids[randNum(ids.length)]))
+      .then(function(txHash) {
         assert.notEqual(txHash, null);
 
         // - Deleted Event is generated
@@ -171,6 +201,7 @@ contract('Registry'/*, {reset_state: true}*/, function(accounts) {
         assert.equal(event.event, 'Deleted');
         assert.deepEqual(event.args.ids, packURN(ids.concat(newId)));
 
+        // Deleted Thing is not accessible by any of it's IDs
         return new Promise(function(resolve, reject) {
           var liveCalls = 0;
           var currentIds = ids.concat(newId);
@@ -183,18 +214,20 @@ contract('Registry'/*, {reset_state: true}*/, function(accounts) {
             });
           });
         });
-      }).then(function() {
+      })
+      .then(done);
+    });
 
-        // Can create multiple Things in one call
-        shared.multiRandId = 'custom:' + randId();
-        return registry.createThings(
+    it('Create multiple Things at once', function(done) {
+      // Can create multiple Things in one call
+      shared.multiRandId = 'custom:' + randId();
+      registry.createThings(
           packURN(ids.concat(newId).concat(shared.multiRandId)), // ids
           [2,2,1], // ids per Thing
           ["0x1","0x2","0x3","0x4","0x5","0x6","0x7"], // data
-          [2,1,3],// data cells per Thing
-          1// Schema
-        );
-      }).then(function(txHash) {
+          [2,1,3], // data cells per Thing
+          1        // Schema index
+      ).then(function(txHash) {
         assert.notEqual(txHash, null);
 
         return eventsHelper.getEvents(txHash, createdEvent);
@@ -207,7 +240,6 @@ contract('Registry'/*, {reset_state: true}*/, function(accounts) {
         // Todo try access all the created Things
         done();
       }).catch(console.log);
-
     });
 
 
@@ -216,9 +248,6 @@ contract('Registry'/*, {reset_state: true}*/, function(accounts) {
     // Can create Thing with previously deleted Identity.
     // Others cannot delete my records
     // All the edge cases
-
-
-
 });
 
 
