@@ -12,6 +12,7 @@ module.exports = {
   deploy: [
     "MultiAccess",
     "MultiAccessTester",
+    "MultiAccessTestable",
     "Registrar",
     "Registry"
   ],

@@ -48,6 +48,13 @@ contract MultiAccess {
     */
     event RequirementChanged(uint newRequirement);
 
+    /**
+    * Recipient contract requirement change event.
+    * event
+    * @param newRecipientRequirement - The uint of the new recipient requirement.
+    */
+    event RecipientRequirementChanged(uint newRecipientRequirement);
+
     struct PendingState {
         bool[] ownersDone;
         uint yetNeeded;
@@ -58,6 +65,7 @@ contract MultiAccess {
     PendingState[] pending;
 
     uint public multiAccessRequired;
+    uint public multiAccessRecipientRequired;
 
     mapping(address => uint) ownerIndex;
     address[] public multiAccessOwners;
@@ -76,8 +84,8 @@ contract MultiAccess {
     * Allow only if many owners has agreed to exec the function.
     * modifier
     */
-    modifier onlymanyowners(bytes32 _operation) {
-        if (confirmAndCheck(_operation)) {
+    modifier onlymanyowners(bool _isSelfFunction) {
+        if (_confirmAndCheck(_isSelfFunction)) {
             _
         }
     }
@@ -91,6 +99,7 @@ contract MultiAccess {
         multiAccessOwners[1] = msg.sender;
         ownerIndex[msg.sender] = 1;
         multiAccessRequired = 1;
+        multiAccessRecipientRequired = 1;
         pending.length = 1;
     }
 
@@ -116,35 +125,36 @@ contract MultiAccess {
     /**
     * Confirm an operation.
     * internalfunction
-    * @param _operation - The operation name.
+    * @param _isSelfFunction - Is this a self or recipient function call.
     */
-    function confirmAndCheck(bytes32 _operation) onlyowner() internal returns (bool) {
+    function _confirmAndCheck(bool _isSelfFunction) onlyowner() internal returns (bool) {
+        bytes32 operation = sha3(msg.data);
         uint index = ownerIndex[msg.sender];
-        if (multiAccessHasConfirmed(_operation, msg.sender)) {
+        if (multiAccessHasConfirmed(operation, msg.sender)) {
             return false;
         }
 
-        var pos = pendingIndex[_operation];
+        var pos = pendingIndex[operation];
         if (pos == 0) {
             pos = pending.length++;
-            pending[pos].yetNeeded = multiAccessRequired;
-            pending[pos].op = _operation;
-            pendingIndex[_operation] = pos;
+            pending[pos].yetNeeded = _isSelfFunction ? multiAccessRequired : multiAccessRecipientRequired;
+            pending[pos].op = operation;
+            pendingIndex[operation] = pos;
         }
 
         var pendingOp = pending[pos];
         if (pendingOp.yetNeeded <= 1) {
-            Confirmation(msg.sender, _operation, true);
+            Confirmation(msg.sender, operation, true);
             if (pos < pending.length-1) {
                 PendingState last = pending[pending.length-1];
                 pending[pos] = last;
                 pendingIndex[last.op] = pos;
             }
             pending.length--;
-            delete pendingIndex[_operation];
+            delete pendingIndex[operation];
             return true;
         } else {
-            Confirmation(msg.sender, _operation, false);
+            Confirmation(msg.sender, operation, false);
             pendingOp.yetNeeded--;
             if (index >= pendingOp.ownersDone.length) {
                 pendingOp.ownersDone.length = index+1;
@@ -159,7 +169,7 @@ contract MultiAccess {
     * Remove all the pending operations.
     * internalfunction
     */
-    function clearPending() internal {
+    function _clearPending() internal {
         uint length = pending.length;
         for (uint i = length-1; i > 0; --i) {
             delete pendingIndex[pending[i].op];
@@ -198,7 +208,7 @@ contract MultiAccess {
     * @param _from - The old address.
     * @param _to - The new address.
     */
-    function multiAccessChangeOwner(address _from, address _to) onlymanyowners(sha3(msg.data)) external {
+    function multiAccessChangeOwner(address _from, address _to) onlymanyowners(true) external {
         if (multiAccessIsOwner(_to)) {
             return;
         }
@@ -207,7 +217,7 @@ contract MultiAccess {
             return;
         }
 
-        clearPending();
+        _clearPending();
         multiAccessOwners[index] = _to;
         delete ownerIndex[_from];
         ownerIndex[_to] = index;
@@ -219,7 +229,7 @@ contract MultiAccess {
     * external_function
     * @param _owner - The address to add.
     */
-    function multiAccessAddOwner(address _owner) onlymanyowners(sha3(msg.data)) external {
+    function multiAccessAddOwner(address _owner) onlymanyowners(true) external {
         if (multiAccessIsOwner(_owner)) {
             return;
         }
@@ -234,7 +244,7 @@ contract MultiAccess {
     * external_function
     * @param _owner - The address to remove.
     */
-    function multiAccessRemoveOwner(address _owner) onlymanyowners(sha3(msg.data)) external {
+    function multiAccessRemoveOwner(address _owner) onlymanyowners(true) external {
         uint index = ownerIndex[_owner];
         if (index == 0) {
             return;
@@ -249,22 +259,36 @@ contract MultiAccess {
         }
         multiAccessOwners.length--;
         delete ownerIndex[_owner];
-        clearPending();
+        _clearPending();
         OwnerRemoved(_owner);
     }
 
     /**
     * Change the requirement.
     * external_function
-    * @param _newRequired - The new amounts of required owners.
+    * @param _newRequired - The new amount of required signatures.
     */
-    function multiAccessChangeRequirement(uint _newRequired) onlymanyowners(sha3(msg.data)) external {
+    function multiAccessChangeRequirement(uint _newRequired) onlymanyowners(true) external {
         if (_newRequired == 0 || _newRequired > multiAccessOwners.length-1) {
             return;
         }
         multiAccessRequired = _newRequired;
-        clearPending();
+        _clearPending();
         RequirementChanged(_newRequired);
+    }
+
+    /**
+    * Change the recipient requirement.
+    * external_function
+    * @param _newRecipientRequired - The new amount of recipient required signatures.
+    */
+    function multiAccessChangeRecipientRequirement(uint _newRecipientRequired) onlymanyowners(true) {
+        if (_newRecipientRequired == 0) {
+            return;
+        }
+        multiAccessRecipientRequired = _newRecipientRequired;
+        _clearPending();
+        RecipientRequirementChanged(_newRecipientRequired);
     }
 
     /**
@@ -272,20 +296,30 @@ contract MultiAccess {
     * public_function
     * @param _address - The multiAccessRecipient address.
     */
-    function multiAccessSetRecipient(address _address) onlymanyowners(sha3(msg.data)) returns(bool _success) {
+    function multiAccessSetRecipient(address _address) onlymanyowners(true) returns(bool _success) {
+        if (multiAccessRecipient == _address) {
+            return true;
+        }
         multiAccessRecipient = _address;
+        _clearPending();
         return true;
     }
 
-    function() onlymanyowners(sha3(msg.data)) returns(bool _success) {
+    /**
+    * Call arbitrary address.
+    * public_function
+    * @param _to - The address to call.
+    * @param _value - The value of wei to send with the call.
+    * @param _data - Message data to send with the call.
+    */
+    function multiAccessCall(address _to, uint _value, bytes _data) onlymanyowners(true) returns(bool _success) {
+        return _to.call.value(_value)(_data);
+    }
+
+    function() onlymanyowners(false) returns(bool _success) {
         if (msg.data.length > 0) {
             return multiAccessRecipient.call(msg.data);
         }
         return false;
     }
-    // DEPLOY REMOVE START
-    function callTester() onlymanyowners(sha3(msg.data)) {
-        multiAccessRecipient.call(msg.data);
-    }
-    // DEPLOY REMOVE END
 }

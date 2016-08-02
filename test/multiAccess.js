@@ -3,7 +3,7 @@ contract('MultiAccess', {reset_state: true}, function(accounts) {
   var multiAccess = undefined;
 
   beforeEach(function(done) {
-    multiAccess = MultiAccess.deployed();
+    multiAccess = MultiAccessTestable.deployed();
     done();
   });
 
@@ -44,8 +44,6 @@ contract('MultiAccess', {reset_state: true}, function(accounts) {
     }).then(function() {
       return multiAccess.callTester();
     }).then(function() {
-      return multiAccess.callTester({from: newOwner});
-    }).then(function() {
       return multiAccessTester.calls.call();
     }).then(function(calls) {
       assert.equal(calls.valueOf(), 0);
@@ -53,11 +51,30 @@ contract('MultiAccess', {reset_state: true}, function(accounts) {
     }).then(function() {
       return multiAccess.callTester();
     }).then(function() {
+      return multiAccessTester.calls.call();
+    }).then(function(calls) {
+      assert.equal(calls.valueOf(), 1);
+    }).then(done).catch(done);
+  });
+  it('should clear pending opertaions when setting new recipient', function(done) {
+    var multiAccessTester = MultiAccessTester.deployed();
+    var newOwner = accounts[1];
+    multiAccess.multiAccessAddOwner(newOwner).then(function() {
+      return multiAccess.multiAccessChangeRecipientRequirement(2);
+    }).then(function() {
+      return multiAccess.multiAccessChangeRequirement(2);
+    }).then(function() {
+      return multiAccess.multiAccessSetRecipient(multiAccessTester.address);
+    }).then(function() {
+      return multiAccess.callTester();
+    }).then(function() {
+      return multiAccess.multiAccessSetRecipient(multiAccessTester.address, {from: newOwner});
+    }).then(function() {
       return multiAccess.callTester({from: newOwner});
     }).then(function() {
       return multiAccessTester.calls.call();
     }).then(function(calls) {
-      assert.equal(calls.valueOf(), 1);
+      assert.equal(calls.valueOf(), 0);
     }).then(done).catch(done);
   });
 
@@ -178,6 +195,33 @@ contract('MultiAccess', {reset_state: true}, function(accounts) {
     }).then(done).catch(done);
   });
 
+  it('should not be possible to change recipient requirement to 0', function(done) {
+    multiAccess.multiAccessChangeRecipientRequirement(0).then(function() {
+      return multiAccess.multiAccessRecipientRequired.call();
+    }).then(function(required) {
+      assert.equal(required.valueOf(), 1);
+    }).then(done).catch(done);
+  });
+  it('should be possible to change recipient requirement to 2 with single owner', function(done) {
+    multiAccess.multiAccessChangeRecipientRequirement(2).then(function() {
+      return multiAccess.multiAccessRecipientRequired.call();
+    }).then(function(required) {
+      assert.equal(required.valueOf(), 2);
+    }).then(done).catch(done);
+  });
+  it('should be possible to change recipient requirement from 1 to 1 with single owner', function(done) {
+    var watcher = multiAccess.RecipientRequirementChanged();
+    eventsHelper.setupEvents(multiAccess);
+    multiAccess.multiAccessChangeRecipientRequirement(1).then(function(txHash) {
+      return eventsHelper.getEvents(txHash, watcher);
+    }).then(function(events) {
+      assert.equal(events.length, 1);
+      assert.equal(events[0].args.newRecipientRequirement.valueOf(), 1);
+      return multiAccess.multiAccessRecipientRequired.call();
+    }).then(function(required) {
+      assert.equal(required.valueOf(), 1);
+    }).then(done).catch(done);
+  });
   it('should not be possible to change requirement to 0', function(done) {
     multiAccess.multiAccessChangeRequirement(0).then(function() {
       return multiAccess.multiAccessRequired.call();
@@ -510,7 +554,7 @@ contract('MultiAccess', {reset_state: true}, function(accounts) {
     multiAccess.multiAccessAddOwner(newOwner).then(function() {
       return multiAccess.multiAccessSetRecipient(multiAccessTester.address);
     }).then(function() {
-      return multiAccess.multiAccessChangeRequirement(2);
+      return multiAccess.multiAccessChangeRecipientRequirement(2);
     }).then(function() {
       return multiAccess.callTester();
     }).then(function() {
@@ -533,7 +577,7 @@ contract('MultiAccess', {reset_state: true}, function(accounts) {
     }).then(function() {
       return multiAccess.multiAccessSetRecipient(multiAccessTester.address);
     }).then(function() {
-      return multiAccess.multiAccessChangeRequirement(2);
+      return multiAccess.multiAccessChangeRecipientRequirement(2);
     }).then(function() {
       return multiAccess.callTester();
     }).then(function() {
@@ -571,7 +615,7 @@ contract('MultiAccess', {reset_state: true}, function(accounts) {
     multiAccess.multiAccessAddOwner(newOwner).then(function() {
       return multiAccess.multiAccessSetRecipient(multiAccessTester.address);
     }).then(function() {
-      return multiAccess.multiAccessChangeRequirement(2);
+      return multiAccess.multiAccessChangeRecipientRequirement(2);
     }).then(function() {
       return multiAccess.callTester();
     }).then(function() {
@@ -597,7 +641,7 @@ contract('MultiAccess', {reset_state: true}, function(accounts) {
     multiAccess.multiAccessAddOwner(newOwner).then(function() {
       return multiAccess.multiAccessSetRecipient(multiAccessTester.address);
     }).then(function() {
-      return multiAccess.multiAccessChangeRequirement(2);
+      return multiAccess.multiAccessChangeRecipientRequirement(2);
     }).then(function() {
       return multiAccess.callTester();
     }).then(function() {
@@ -617,6 +661,8 @@ contract('MultiAccess', {reset_state: true}, function(accounts) {
     var newOwner = accounts[1];
     var newOwner2 = accounts[2];
     multiAccess.multiAccessAddOwner(newOwner).then(function() {
+      return multiAccess.multiAccessChangeRecipientRequirement(2);
+    }).then(function() {
       return multiAccess.multiAccessChangeRequirement(2);
     }).then(function() {
       return multiAccess.callTester();
@@ -645,7 +691,7 @@ contract('MultiAccess', {reset_state: true}, function(accounts) {
     var newOwner = accounts[1];
     var nonOwner = accounts[2];
     multiAccess.multiAccessAddOwner(newOwner).then(function() {
-      return multiAccess.multiAccessChangeRequirement(2);
+      return multiAccess.multiAccessChangeRecipientRequirement(2);
     }).then(function() {
       return multiAccess.callTester();
     }).then(function() {
@@ -659,7 +705,7 @@ contract('MultiAccess', {reset_state: true}, function(accounts) {
     var owner = accounts[0];
     var newOwner = accounts[1];
     multiAccess.multiAccessAddOwner(newOwner).then(function() {
-      return multiAccess.multiAccessChangeRequirement(2);
+      return multiAccess.multiAccessChangeRecipientRequirement(2);
     }).then(function() {
       return multiAccess.callTester();
     }).then(function() {
@@ -673,7 +719,7 @@ contract('MultiAccess', {reset_state: true}, function(accounts) {
     var owner = accounts[0];
     var newOwner = accounts[1];
     multiAccess.multiAccessAddOwner(newOwner).then(function() {
-      return multiAccess.multiAccessChangeRequirement(2);
+      return multiAccess.multiAccessChangeRecipientRequirement(2);
     }).then(function() {
       return multiAccess.callTester();
     }).then(function() {
@@ -695,7 +741,7 @@ contract('MultiAccess', {reset_state: true}, function(accounts) {
       assert.equal(events.length, 1);
       assert.equal(events[0].args.owner.valueOf(), owner1);
       eventsHelper.setupEvents(multiAccess);
-      return multiAccess.multiAccessChangeRequirement(2, {from: owner2});
+      return multiAccess.multiAccessChangeRecipientRequirement(2, {from: owner2});
     }).then(function(txHash) {
       return eventsHelper.getEvents(txHash, watcher);
     }).then(function(events) {
@@ -790,7 +836,7 @@ contract('MultiAccess', {reset_state: true}, function(accounts) {
     }).then(function() {
       return multiAccess.multiAccessSetRecipient(multiAccessTester.address);
     }).then(function() {
-      return multiAccess.multiAccessChangeRequirement(2);
+      return multiAccess.multiAccessChangeRecipientRequirement(2);
     }).then(function() {
       return multiAccess.callTester();
     }).then(function() {
@@ -885,6 +931,27 @@ contract('MultiAccess', {reset_state: true}, function(accounts) {
       return multiAccess.multiAccessRequired.call();
     }).then(function(required) {
       assert.equal(required.valueOf(), 2);
+    }).then(done).catch(done);
+  });
+
+  it('should be possible to call arbitrary contract through multiAccessCall', function(done) {
+    var multiAccessTester = MultiAccessTester.deployed();
+    var multiAccessTesterAbi = web3.eth.contract(multiAccessTester.abi).at(0x0);
+    var owner = accounts[0];
+    var newOwner = accounts[1];
+    multiAccess.multiAccessAddOwner(newOwner).then(function() {
+      return multiAccess.multiAccessChangeRequirement(2);
+    }).then(function() {
+      return multiAccess.multiAccessCall(multiAccessTester.address, 0, multiAccessTesterAbi.callTester.getData());
+    }).then(function() {
+      return multiAccessTester.calls();
+    }).then(function(result) {
+      assert.equal(result.valueOf(), 0);
+      return multiAccess.multiAccessCall(multiAccessTester.address, 0, multiAccessTesterAbi.callTester.getData(), {from: newOwner});
+    }).then(function() {
+      return multiAccessTester.calls();
+    }).then(function(result) {
+      assert.equal(result.valueOf(), 1);
     }).then(done).catch(done);
   });
 });
