@@ -519,19 +519,6 @@ contract Registry {
         return (thing.identities, thing.data, thing.schemaIndex, schemas[thing.schemaIndex], thing.ownerAddress, thing.isValid);
     }
 
-
-    // Warning. Function is only for debugging purposes. Thing index is not fixed and can be changed at any time.
-    function getThingByIndexDEBUG(uint _index) constant returns (bytes32[], bytes32[], uint88, string, address, bool) {
-        if (_index == 0 || _index >= things.length) {
-            bytes32[] memory ref = new bytes32[](1);
-            ref[0] = bytes32(_index);
-            Error(2, ref);
-            return;
-        }
-        var thing = things[_index];
-        return (thing.identities, thing.data, thing.schemaIndex, schemas[thing.schemaIndex], thing.ownerAddress, thing.isValid);
-    }
-
     /**
     * Check if Thing is present in the registry by it's ID
     * constant_function
