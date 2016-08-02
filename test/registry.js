@@ -272,7 +272,7 @@ contract('Registry', {reset_state: true}, function(accounts) {
       assert.equal(result, true);
       return registry.createThing.apply(null, params);
     }).then(function(txHash) {
-      return registry.getThingByIndexDEBUG.call(1);
+      return registry.getThing.call(packURN(ids[0]));
     }).then(function(res) {
       selection = packURN(ids[randNum(ids.length)])
       return registry.addIdentities.call(selection, packURN(newId));
@@ -281,7 +281,7 @@ contract('Registry', {reset_state: true}, function(accounts) {
       return registry.addIdentities(selection, packURN(newId));
     }).then(function(txHash) {
       assert.notEqual(txHash, null);
-      return registry.getThingByIndexDEBUG.call(1);
+      return registry.getThing.call(packURN(newId));
     }).then(function(res) {
       assert(chunkedIds.length < res[0].length);
       return done();
@@ -469,7 +469,7 @@ contract('Registry', {reset_state: true}, function(accounts) {
         return registry.updateThingData(selection, ['0x09128049214'], 1);
       }).then(function(txHash) {
         assert.notEqual(txHash, null);
-        return registry.getThingByIndexDEBUG.call(1);
+        return registry.getThing.call(selection);
       }).then(function(res) {
         assert.equal(res[1].length, 1);
         assert.equal(res[2].toNumber(), 1);
@@ -504,7 +504,7 @@ contract('Registry', {reset_state: true}, function(accounts) {
         return registry.updateThingData(packURN(newId), ['0xdeadbeef'], 1);
       }).then(function(txHash) {
         assert.notEqual(txHash, null);
-        return registry.getThingByIndexDEBUG.call(1);
+        return registry.getThing.call(packURN(newId));
       }).then(function(res) {
         assert(res[0].length > chunkedIds.length);
         assert.equal(res[1].length, 1);
