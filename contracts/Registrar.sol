@@ -2,22 +2,22 @@ contract Registrar {
     address public certificationAuthority;
 
     /**
-    * Creation event that gets triggered when a new registrant gets created
+    * Created event that gets triggered when a new registrant gets created
     * event
     * @param registrant - The registrant address.
     * @param authority - The CA address.
     * @param data - The data of the registrant.
     */
-    event Creation(address indexed registrant, address authority, string data);
+    event Created(address indexed registrant, address authority, string data);
 
     /**
-    * Update event that gets triggered when a new registrant id updated
+    * Updated event that gets triggered when a new registrant id Updated
     * event
     * @param registrant - The registrant address.
     * @param authority - The CA address.
     * @param data - The data of the registrant.
     */
-    event Update(address indexed registrant, address authority, string data, bool active);
+    event Updated(address indexed registrant, address authority, string data, bool active);
 
     /**
     * Error event.
@@ -68,7 +68,7 @@ contract Registrar {
         uint pos = registrants.length++;
         registrants[pos] = Registrant(_registrant, _data, true);
         registrantIndex[_registrant] = pos;
-        Creation(_registrant, msg.sender, _data);
+        Created(_registrant, msg.sender, _data);
         return true;
     }
 
@@ -86,7 +86,7 @@ contract Registrar {
         Registrant registrant = registrants[registrantIndex[_registrant]];
         registrant.data = _data;
         registrant.active = _active;
-        Update(_registrant, msg.sender, _data, _active);
+        Updated(_registrant, msg.sender, _data, _active);
         return true;
     }
 
