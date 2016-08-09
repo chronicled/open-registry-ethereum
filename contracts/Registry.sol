@@ -7,10 +7,10 @@ contract Registry {
     /**
     * Creation event that gets triggered when a thing is created.
     * event
-    * @param ids - The identity of the thing. Last parameter because it is of dynamic size.
+    * @param ids - The identity of the thing.
     * @param owner - The owner address.
     */
-    event Created(bytes32[] ids, address indexed owner); // uint indexed owner,
+    event Created(bytes32[] ids, address indexed owner);
 
     /**
     * Update event that gets triggered when a thing is updated.
@@ -88,12 +88,12 @@ contract Registry {
     }
 
     /**
-    * Allow only CA to exec the function.
+    * Allow only registrar to exec the function.
     * modifier
     */
-    modifier isCertificationAuthority() {
+    modifier isRegistrar() {
         Registrar registrar = Registrar(registrarAddress);
-        if (registrar.certificationAuthority() == msg.sender) {
+        if (registrar.registrar() == msg.sender) {
             _
         }
     }
@@ -114,7 +114,7 @@ contract Registry {
     * @param _thingIndex - The position of the Thing in the array.
     * @param _ids - Identities of the Thing in chunked format. Maximum size of one Identity is 2057 bytes32 elements.
     */
-    function _addIdentities(uint _thingIndex, bytes32[] _ids) internal returns (bool){
+    function _addIdentities(uint _thingIndex, bytes32[] _ids) internal returns(bool){
         // Checks if there's duplicates and creates references
         if (false == _rewireIdentities(_ids, 0, _thingIndex, 0)) {
             return false;
@@ -254,7 +254,7 @@ contract Registry {
     * public_function
     * @param _registrarAddress - The Registrar contract address.
     */
-    function configure(address _registrarAddress) noEther returns (bool) {
+    function configure(address _registrarAddress) noEther returns(bool) {
         if (registrarAddress != 0x0) {
             // Convert into array to properly generate Error event
             bytes32[] memory ref = new bytes32[](1);
@@ -275,7 +275,7 @@ contract Registry {
     * @param _data - Thing chunked data array.
     * @param _schemaIndex - Index of the schema to parse Thing's data.
     */
-    function createThing(bytes32[] _ids, bytes32[] _data, uint88 _schemaIndex) isRegistrant returns (bool) {
+    function createThing(bytes32[] _ids, bytes32[] _data, uint88 _schemaIndex) isRegistrant returns(bool) {
         // No data provided
         if (_data.length == 0) {
             Error(6, _ids);
@@ -370,7 +370,7 @@ contract Registry {
     * @param _id - ID of the existing Thing
     * @param _newIds - IDs to be added.
     */
-    function addIdentities(bytes32[] _id, bytes32[] _newIds) isRegistrant noEther returns (bool) {
+    function addIdentities(bytes32[] _id, bytes32[] _newIds) isRegistrant noEther returns(bool) {
         var index = idToThing[sha3(_id)];
 
         // There no Thing with such ID
@@ -403,7 +403,7 @@ contract Registry {
     * @param _data - Thing data array.
     * @param _schemaIndex - The schema index of the schema to parse the thing.
     */
-    function updateThingData(bytes32[] _id, bytes32[] _data, uint88 _schemaIndex) isRegistrant noEther returns (bool) {
+    function updateThingData(bytes32[] _id, bytes32[] _data, uint88 _schemaIndex) isRegistrant noEther returns(bool) {
         uint index = idToThing[sha3(_id)];
 
         if (index == 0) {
@@ -438,7 +438,7 @@ contract Registry {
     * @param _id - The identity to change.
     * @param _isValid - The new validity of the thing.
     */
-    function setThingValid(bytes32[] _id, bool _isValid) isRegistrant noEther returns (bool) {
+    function setThingValid(bytes32[] _id, bool _isValid) isRegistrant noEther returns(bool) {
         uint index = idToThing[sha3(_id)];
 
         if (index == 0) {
@@ -462,7 +462,7 @@ contract Registry {
     * public_function
     * @param _id - One of Thing's Identities.
     */
-    function deleteThing(bytes32[] _id) isRegistrant noEther returns (bool) {
+    function deleteThing(bytes32[] _id) isRegistrant noEther returns(bool) {
         uint index = idToThing[sha3(_id)];
 
         if (index == 0) {
@@ -504,11 +504,19 @@ contract Registry {
     }
 
     /**
+    * Get length of the schemas array
+    * constant_function
+    */
+    function getSchemasLenght() constant returns(uint) {
+        return schemas.length;
+    }
+
+    /**
     * Get Thing's information
     * constant_function
     * @param _id - identity of the thing.
     */
-    function getThing(bytes32[] _id) constant returns (bytes32[], bytes32[], uint88, string, address, bool) {
+    function getThing(bytes32[] _id) constant returns(bytes32[], bytes32[], uint88, string, address, bool) {
         var index = idToThing[sha3(_id)];
         // No such Thing
         if (index == 0) {
@@ -525,18 +533,18 @@ contract Registry {
     * @param _id - identity for lookup.
     */
     // Todo: reevaluate this method. Do we need it?
-    function thingExist(bytes32[] _id) constant returns (bool) {
+    function thingExist(bytes32[] _id) constant returns(bool) {
         return idToThing[sha3(_id)] > 0;
     }
 
     /**
-    * Add a new schema, only Registrar allowed.
+    * Add a new schema, only Registrar allowed
     * public_function
     * @param _schema - New schema string to add.
     * The string should use ;#; characters as separators between name, description and definition, example:
     * schemaName + ';#;' + schemaDescription + ";#;" + schemaDefinition
     */
-    function createSchema(string _schema) isCertificationAuthority noEther returns (uint) {
+    function createSchema(string _schema) isRegistrar noEther returns(uint) {
         uint pos = schemas.length++;
         schemas[pos] = _schema;
         return pos;
@@ -545,7 +553,5 @@ contract Registry {
     /**
     * Fallback
     */
-    function () noEther {
-        throw;
-    }
+    function () noEther {}
 }
