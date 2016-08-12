@@ -47,16 +47,12 @@ Each identity will be split by `:` into multiple sections, denoting more specifi
 ```
 All categories are case-insensitive, whereas the `ID` is case-sensitive to allow for BASE64 encoding support.
 
-
 ## Construction
 
 `pbk` -- public key
 `pbk:ec` -- elliptic curve public key
 `pbk:rsa` -- rsa public key
-
-`pbk:ec:secp256k1` -- `(NIST P-256)` Koblitz elliptic curve (and its parameters) used. This is the curve used in Bitcoin.
 `pbk:ec:secp256r1` -- Elliptic curve using random parameters
-
 `pbk:ec:secp256r1:0260fed4ba255a9d31c961eb74c6356d68c049b8923b61fa6ce669622e60f29fb6` -- Full ECC URN
 
 ## Elliptic Curve Public Key
