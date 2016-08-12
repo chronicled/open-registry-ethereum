@@ -49,11 +49,30 @@ All categories are case-insensitive, whereas the `ID` is case-sensitive to allow
 
 ## Construction
 
-`pbk` -- public key
-`pbk:ec` -- elliptic curve public key
-`pbk:rsa` -- rsa public key
-`pbk:ec:secp256r1` -- Elliptic curve using random parameters
-`pbk:ec:secp256r1:0260fed4ba255a9d31c961eb74c6356d68c049b8923b61fa6ce669622e60f29fb6` -- Full ECC URN
+Public Key
+```
+pbk
+```
+
+Elliptic Curve Public Key
+```
+pbk:ec
+```
+
+RSA Public Key
+```
+pbk:rsa
+```
+
+Elliptic curve using verified random parameters
+```
+pbk:ec:secp256r1
+```
+
+Full ECC URN
+```
+pbk:ec:secp256r1:0260fed4ba255a9d31c961eb74c6356d68c049b8923b61fa6ce669622e60f29fb6
+```
 
 ## Elliptic Curve Public Key
 We will be using compressed elliptic curve cryptographic public keys. A compressed ECC public key uses only the `x` coordinate and the polarity or sign (+/-) of the `y` coordinate to recover the uncompressed public key. Additionally, if we are only interested in reading the public key from a device and verifying a cryptographic signature, we can store only the `x` coordinate in the Open Registry, asserting that this public key coordinate matches the one received from interacting with the device. If the Open Registry contains the same `x` coordinate as is returned by the device, then we need not worry about the polarity of the ECC public key coordinate - the Thing is authentic.
@@ -62,40 +81,56 @@ We have decided to store the polarity as well in order to verify the signature w
 
 ### Polarity
 Polarity in public key modulus is represented as even or odd. The polarity is appended to the beginning of the `x` coordinate that will be stored in the Open Registry.
+
 ```
 even --> 0x02
 odd  --> 0x03
 ```
+
 As is used in Bitcoin's public key compression. The byte is used here since padding will always be applied to the identity. In BASE64, it will be the same length as if it was only a bit.
 
 ## RSA Public Key
 The format of an RSA public key in URN format is as follows:
-`pbk:rsa:<key size in bits>:<public key of defined size><exponent used>`
+```
+pbk:rsa:<key size in bits>:<public key of defined size><exponent used>
+```
 
 A sample RSA public key in URN format with `2048` bit key and `0x010001` will be the following:
-`pbk:rsa:2048:cb47e6aada931986bb6bbf02c8618437c072cefa4e19c1ee6cb189b95a49e3ce94fb4de129c30ab7e683f827c98eb05e844af24f809ed5f217e93c14d58f64b98fc9136d3c2b56a672853a8f52c7ac7acd201b09d0f578f32f377f954905e18fa360448901d0ac538cd1102dc0821cd13a843e370471c00e95daf4bba001186c5b2220e15f2f4777aa9b0a823186c34d82fd557e245b4d5816f48bdc09dd34806982609b63012dd13fe603f23730940e68463b1b68f24ee77907925d286d55ec22bad53119f8354388e051854ef436589538f1efbf104af477dc3ca2cf29974fcf432639b8716c38c717d44c8f0c90d59f02f2ab0aef8b59c2feb460e2cbfb57010001`
+```
+pbk:rsa:2048:cb47e6aada931986bb6bbf02c8618437c072cefa4e19c1ee6cb189b95a49e3ce94fb4de129c30ab7e683f827c98eb05e844af24f809ed5f217e93c14d58f64b98fc9136d3c2b56a672853a8f52c7ac7acd201b09d0f578f32f377f954905e18fa360448901d0ac538cd1102dc0821cd13a843e370471c00e95daf4bba001186c5b2220e15f2f4777aa9b0a823186c34d82fd557e245b4d5816f48bdc09dd34806982609b63012dd13fe603f23730940e68463b1b68f24ee77907925d286d55ec22bad53119f8354388e051854ef436589538f1efbf104af477dc3ca2cf29974fcf432639b8716c38c717d44c8f0c90d59f02f2ab0aef8b59c2feb460e2cbfb57010001
+```
 
 
 ## Examples
 Elliptic Curve Public Key
 
-`pbk:ec:secp256r1:0260fed4ba255a9d31c961eb74c6356d68c049b8923b61fa6ce669622e60f29fb6`
+```
+pbk:ec:secp256r1:0260fed4ba255a9d31c961eb74c6356d68c049b8923b61fa6ce669622e60f29fb6
+```
 
 BLE
 
-`ble:1.0:0A153C993D9C`
+```
+ble:1.0:0A153C993D9C
+```
 
 NFC
 
-`nfc:1.0:04062782DF4980`
+```
+nfc:1.0:04062782DF4980
+```
 
 Serial number
 
-`sn:C02EK02HG8DL`
+```
+sn:C02EK02HG8DL
+```
 
 RSA public key
 
-`pbk:rsa:2048:cb47e6aada931986bb6bbf02c8618437c072cefa4e19c1ee6cb189b95a49e3ce94fb4de129c30ab7e683f827c98eb05e844af24f809ed5f217e93c14d58f64b98fc9136d3c2b56a672853a8f52c7ac7acd201b09d0f578f32f377f954905e18fa360448901d0ac538cd1102dc0821cd13a843e370471c00e95daf4bba001186c5b2220e15f2f4777aa9b0a823186c34d82fd557e245b4d5816f48bdc09dd34806982609b63012dd13fe603f23730940e68463b1b68f24ee77907925d286d55ec22bad53119f8354388e051854ef436589538f1efbf104af477dc3ca2cf29974fcf432639b8716c38c717d44c8f0c90d59f02f2ab0aef8b59c2feb460e2cbfb57010001`
+```
+pbk:rsa:2048:cb47e6aada931986bb6bbf02c8618437c072cefa4e19c1ee6cb189b95a49e3ce94fb4de129c30ab7e683f827c98eb05e844af24f809ed5f217e93c14d58f64b98fc9136d3c2b56a672853a8f52c7ac7acd201b09d0f578f32f377f954905e18fa360448901d0ac538cd1102dc0821cd13a843e370471c00e95daf4bba001186c5b2220e15f2f4777aa9b0a823186c34d82fd557e245b4d5816f48bdc09dd34806982609b63012dd13fe603f23730940e68463b1b68f24ee77907925d286d55ec22bad53119f8354388e051854ef436589538f1efbf104af477dc3ca2cf29974fcf432639b8716c38c717d44c8f0c90d59f02f2ab0aef8b59c2feb460e2cbfb57010001
+```
 
 IDs itself which are in hex/binary form should be converted into base64 to save space.
 
