@@ -1,9 +1,11 @@
 contract('Registrar', {reset_state: true}, function(accounts) {
   it('should be possible to add registrant', function(done) {
     var registrar = Registrar.deployed();
-    registrar.add(accounts[1], "").then(function() {
+    var data = "0x" + (Array(1025).join('af'));
+    registrar.add(accounts[1], data).then(function() {
       return registrar.registrants.call(1);
     }).then(function(result) {
+      assert.equal(result[1], data);
       assert.equal(result[0], accounts[1]);
     }).then(done).catch(done);
   });

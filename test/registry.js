@@ -16,7 +16,13 @@ var ids = [
 var newId = "nfc:1.0:20153c913d9c4a";
 var thingData = ["0x1200000000000000000000000000000000000000000000000000000000000000","0x1400000000000000000000000000000000000000000000000000000000000000"];
 
-
+function toHex(str) {
+  var result = '';
+  for (var i=0; i<str.length; i++) {
+    result += str.charCodeAt(i).toString(16);
+  }
+  return result;
+}
 
 contract('Registry', function(accounts) {
     var eventsHelper = require('../truffle-helpers/eventsHelper.js');
@@ -54,8 +60,11 @@ contract('Registry', function(accounts) {
 
     var schemaContent = "message Thing {" +
                         "required string service_url = 1;" +
-                        "}"
-                        ;
+                        "}";
+    var schemaContentHex = '0x' + toHex(schemaContent);
+    console.log(schemaContentHex);
+
+
 
 
     it('Create Schema', function(done) {
@@ -69,7 +78,7 @@ contract('Registry', function(accounts) {
       deletedEvent = registry.Deleted();
       errorEvent = registry.Error();
 
-      registry.createSchema(schemaContent)
+      registry.createSchema(schemaContentHex)
       .then(function(txHash) {
         assert.notEqual(txHash, null);
         done();
@@ -138,7 +147,7 @@ contract('Registry', function(accounts) {
             assert.deepEqual(thing[0], packURN(currentIds));
             // Is data equal to original
             assert.deepEqual(thing[1], thingData);
-            assert.equal(thing[3], schemaContent);
+            assert.equal(thing[3], schemaContentHex);
 
             if (--liveCalls == 0) resolve();
           });

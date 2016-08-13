@@ -65,7 +65,7 @@ contract Registry {
     mapping(bytes32 => uint) public idToThing;
 
     // Content of ProtoBuffer schema.
-    string[] public schemas;
+    bytes[] public schemas;
 
     /**
     * Function can't contain Ether value.
@@ -516,7 +516,7 @@ contract Registry {
     * constant_function
     * @param _id - identity of the thing.
     */
-    function getThing(bytes32[] _id) constant returns(bytes32[], bytes32[], uint88, string, address, bool) {
+    function getThing(bytes32[] _id) constant returns(bytes32[], bytes32[], uint88, bytes, address, bool) {
         var index = idToThing[sha3(_id)];
         // No such Thing
         if (index == 0) {
@@ -544,7 +544,7 @@ contract Registry {
     * The string should use ;#; characters as separators between name, description and definition, example:
     * schemaName + ';#;' + schemaDescription + ";#;" + schemaDefinition
     */
-    function createSchema(string _schema) isRegistrar noEther returns(uint) {
+    function createSchema(bytes _schema) isRegistrar noEther returns(uint) {
         uint pos = schemas.length++;
         schemas[pos] = _schema;
         return pos;
@@ -554,4 +554,13 @@ contract Registry {
     * Fallback
     */
     function () noEther {}
+
+
+    /**
+    * Desctruct the smart contract. Since this is first, alpha release of Open Registry for IoT, updated versions will follow.
+    * Execute this prior to Registrar's contract discontinue
+    */
+    function discontinue() isRegistrar noEther {
+      selfdestruct(msg.sender);
+    }
 }
