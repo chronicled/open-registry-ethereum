@@ -1,10 +1,12 @@
-# Open Registry Ethereum
-Smart contracts for the Open Registry
+# Open Registry for IoT: Smart Contracts
 
+This open source project represents Ethereum smart contracts which are at the essence of Open Registry for IoT.
+You can find contracts in `/contracts` directory.
 
-## Contrats
+- `Registrar` — whitelisting contract, stores all Registrants which are allowed to add new Things to the registry.
+- `Registry` — registry itself, stores identities and information about all Things added.
 
-contracts are located in the root directory.
+Separate repository provides SDK which gives clear interface to the contracts for JavaScript.
 
 ### Install Dependencies
 
@@ -20,21 +22,6 @@ $ testrpc
 $ truffle test
 ```
 
-## JS libs
-
-libraries are located in the backendSDK directory.
-
-### Install libs
-
-```
-$ npm install
-```
-
-### Test libs
-
-```
-$ npm test
-```
 
 # URN Specification
 > Draft
