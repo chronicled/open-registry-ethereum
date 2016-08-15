@@ -6,12 +6,14 @@
     "test": "truffle test"
   },
   "contributors": [
-    "Ambisafe Inc. (http://ambisafe.co/)",
+    "Ambisafe, Inc. (http://ambisafe.co/)",
     "Drew Stone (http://chronicled.com)",
     "Maksym Petkus <me@petkus.info> (http://chronicled.com)"
   ],
   "license" : "Apache-2.0",
   "dependencies": {
-    "open-registry-utils": "^0.0.1"
+    "open-registry-utils": "^0.0.1",
+    "truffle": "1.0.3",
+    "ethereumjs-testrpc": "2.1.0"
   }
 }
