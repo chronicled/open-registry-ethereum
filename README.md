@@ -26,14 +26,14 @@ $ truffle test
 # URN Specification
 > Draft
 
-In the Open Registry, all Things have identities. We have adopted a Uniform Resource Name (URN) format for encoding and storing these identities, ranging from cryptographic public keys to BLE & NFC device IDs. The URN format is easily readable and allows for the support of a wide variety of identities. It complies with current standards for representing products, books, electronics, and standardized algorithms and protocols. This extensibility is essential for building a universal and open platform for the Internet of Things.
+In the Open Registry, all Things have identities. We have adopted a Uniform Resource Name (URN) standard format to represent these identities, ranging from cryptographic public keys to BLE & NFC device IDs. The URN format is easily readable and allows for the support of a wide variety of identities. It complies with current standards for representing products, books, electronics, etc., and can be used to identify literally anything without need to specify schema / protocol this identity can reached by. This extensibility is essential for building a universal and open platform for the Internet of Things.
 
 ## Format
 Each identity will be split by `:` into multiple sections, denoting more specific information about the identity after each subsequent colon. The last section denotes the actual identity of the Thing.
 ```
 <Category>[:<Subcategory>[:<sub-Subcategory> … ]]:<ID>
 ```
-All categories are case-insensitive, whereas the `ID` is case-sensitive to allow for BASE64 encoding support.
+All categories are case-insensitive.
 
 ## Examples
 
@@ -67,8 +67,6 @@ RSA public key
 pbk:rsa:2048:cb47e6aada931986bb6bbf02c8618437c072cefa4e19c1ee6cb189b95a49e3ce94fb4de129c30ab7e683f827c98eb05e844af24f809ed5f217e93c14d58f64b98fc9136d3c2b56a672853a8f52c7ac7acd201b09d0f578f32f377f954905e18fa360448901d0ac538cd1102dc0821cd13a843e370471c00e95daf4bba001186c5b2220e15f2f4777aa9b0a823186c34d82fd557e245b4d5816f48bdc09dd34806982609b63012dd13fe603f23730940e68463b1b68f24ee77907925d286d55ec22bad53119f8354388e051854ef436589538f1efbf104af477dc3ca2cf29974fcf432639b8716c38c717d44c8f0c90d59f02f2ab0aef8b59c2feb460e2cbfb57010001
 ```
 
-IDs itself which are in hex/binary form should be converted into base64 to save space.
-
 
 ## Construction of Public Key
 
@@ -98,14 +96,12 @@ pbk:ec:secp256r1:0260fed4ba255a9d31c961eb74c6356d68c049b8923b61fa6ce669622e60f29
 ```
 
 ## Elliptic Curve Public Key
-We will be using compressed elliptic curve cryptographic public keys. A compressed ECC public key uses only the `x` coordinate and the polarity or sign (+/-) of the `y` coordinate to recover the uncompressed public key. Additionally, if we are only interested in reading the public key from a device and verifying a cryptographic signature, we can store only the `x` coordinate in the Open Registry, asserting that this public key coordinate matches the one received from interacting with the device. If the Open Registry contains the same `x` coordinate as is returned by the device, then we need not worry about the polarity of the ECC public key coordinate - the Thing is authentic.
-
-We have decided to store the polarity as well in order to verify the signature without reading the public key directly from the device. This complies with how compressed ECC public keys are viewed today and will allow better compatibility in the future.
+Asymmetric encryption public key is stored in open registry to securely verify authenticity identity of a Thing using by means of cryptographic signature.
 
 ## From Raw ECC Public Key to Identity in the Open Registry
-Here we will illustrate an example how to convert an uncompressed public key into an identity to be stored in the Open Registry. Its assumed that you have already generated your ECC key pair.
+Here we will illustrate an example how to convert an uncompressed public key into URN identity to be stored in the Open Registry. Its assumed that you have already generated your ECC key pair.
 
-The public key is represented as a point `(x,y)` on an elliptic curve. Convert these points into their hexadecimal representations. For this example we will use the following points:
+The public key is represented as a point `(x,y)` on an elliptic curve. Convert point coordinates into their hexadecimal representations. For this example we will use the following point:
 `x=0x7462163f89fc02b989e564cf7a2ce39a806273ee4042201fb5544cc794c48975`
 `y=0xd53acb27ef5da1cba6ff90e3611637e55a14ce6a9ec25063cd0de943f1dd3b04`
 
