@@ -1,0 +1,17 @@
+{
+  "name": "open-registry-ethereum",
+  "version": "0.0.1",
+  "description": "Open Registry for IoT Smart Contracts",
+  "scripts": {
+    "test": "truffle test"
+  },
+  "contributors": [
+    "Ambisafe Inc. (http://ambisafe.co/)",
+    "Drew Stone (http://chronicled.com)",
+    "Maksym Petkus <me@petkus.info> (http://chronicled.com)"
+  ],
+  "license" : "Apache-2.0",
+  "dependencies": {
+    "open-registry-utils": "^0.0.1"
+  }
+}

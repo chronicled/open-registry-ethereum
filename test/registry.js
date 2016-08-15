@@ -2,7 +2,7 @@
 
 
 // Globally used
-var UtilURN = require('../truffle-helpers/urn.js');
+var UtilURN = require('open-registry-utils').urn;
 var packURN = UtilURN.packer.encodeAndChunk.bind(UtilURN.packer);
 var unpackURN = UtilURN.packer.decode.bind(UtilURN.packer);
 var randNum = function(upTo) {return Math.floor(Math.random() * upTo)};
