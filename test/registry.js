@@ -49,7 +49,13 @@ contract('Registry', function(accounts) {
 
       registry.configure.call(registrar.address, {from: accounts[1]}).then(function(result) {
         assert.equal(result, false);
+
+        return registry.configure.call(registrar.address, {from: accounts[0]});
+      }).then(function(result) {
+        assert.equal(result, true);
+        done();
       });
+      ;
     });
 
 

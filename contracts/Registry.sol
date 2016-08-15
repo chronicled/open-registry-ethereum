@@ -4,7 +4,7 @@ contract Registry {
     // Address of the Registrar contract which holds all the Registrants
     address public registrarAddress;
     // Address of the account which deployed the contract. Used only to configure contract.
-    address public owner;
+    address public deployerAddress;
 
     /**
     * Creation event that gets triggered when a thing is created.
@@ -44,6 +44,7 @@ contract Registry {
     * 6: Incorrect input, data is required.
     * 7: Incorrect format of the identity, schema length and identity length cannot be empty.
     * 8: Incorrect format of the identity, identity must be padded with trailing 0s.
+    * 9: Contract already configured
     */
     event Error(uint code, bytes32[] reference);
 
@@ -108,7 +109,7 @@ contract Registry {
         // Initialize arrays. Leave first element empty, since mapping points non-existent keys to 0.
         things.length++;
         schemas.length++;
-        owner = msg.sender;
+        deployerAddress = msg.sender;
     }
 
     /**
@@ -262,12 +263,17 @@ contract Registry {
     * @param _registrarAddress - The Registrar contract address.
     */
     function configure(address _registrarAddress) noEther returns(bool) {
-        if (registrarAddress != 0x0) {
-            // Convert into array to properly generate Error event
-            bytes32[] memory ref = new bytes32[](1);
-            ref[0] = bytes32(registrarAddress);
+        // Convert into array to properly generate Error event
+        bytes32[] memory ref = new bytes32[](1);
+        ref[0] = bytes32(registrarAddress);
 
+        if (msg.sender != deployerAddress) {
             Error(3, ref);
+            return false;
+        }
+
+        if (registrarAddress != 0x0) {
+            Error(9, ref);
             return false;
         }
 
