@@ -1,3 +1,35 @@
+contract('Registrar', function(accounts) {
+  var eventsHelper = require('../truffle-helpers/eventsHelper.js');
+  var registrar;
+
+  var createdEvent;
+  var updatedEvent;
+  var errorEvent;
+
+  it('Should not allow to add Regitrant to non-Registrar', function(done) {
+    var registrar = Registrar.deployed();
+
+    eventsHelper.setupEvents(registrar);
+    createdEvent = registrar.Created();
+    updatedEvent = registrar.Updated();
+    errorEvent = registrar.Error();
+
+    registrar.add(accounts[1], '0x0001', {from: accounts[1]})
+    .then(function(txHash) {
+      return eventsHelper.getEvents(txHash, errorEvent);
+    }).then(function(events) {
+      var eventParams = events[0].args;
+      assert(eventParams.code.equals(1));
+      // Same Ids as provided
+      done();
+    });
+
+  });
+});
+
+
+
+
 contract('Registrar', {reset_state: true}, function(accounts) {
   it('should be possible to add registrant', function(done) {
     var registrar = Registrar.deployed();

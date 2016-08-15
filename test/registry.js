@@ -42,6 +42,17 @@ contract('Registry', function(accounts) {
     // Shared object between "it" blocks
     var shared = {};
 
+
+    it('Non-creator cannot configure registry', function(done) {
+      var registrar = Registrar.deployed();
+      var registry = Registry.deployed();
+
+      registry.configure.call(registrar.address, {from: accounts[1]}).then(function(result) {
+        assert.equal(result, false);
+      });
+    });
+
+
     it('should be possible to configure registry', function(done) {
       var registrar = Registrar.deployed();
       var registry = Registry.deployed();

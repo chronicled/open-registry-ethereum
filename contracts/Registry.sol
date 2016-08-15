@@ -538,11 +538,9 @@ contract Registry {
     }
 
     /**
-    * Add a new schema, only Registrar allowed
+    * Create a new schema. Provided as hex of ProtoBuf-encoded schema data.
     * public_function
     * @param _schema - New schema string to add.
-    * The string should use ;#; characters as separators between name, description and definition, example:
-    * schemaName + ';#;' + schemaDescription + ";#;" + schemaDefinition
     */
     function createSchema(bytes _schema) isRegistrar noEther returns(uint) {
         uint pos = schemas.length++;
@@ -558,7 +556,7 @@ contract Registry {
 
     /**
     * Desctruct the smart contract. Since this is first, alpha release of Open Registry for IoT, updated versions will follow.
-    * Execute this prior to Registrar's contract discontinue
+    * Execute this prior to Registrar's contract discontinue()
     */
     function discontinue() isRegistrar noEther {
       selfdestruct(msg.sender);
