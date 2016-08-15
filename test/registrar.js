@@ -52,9 +52,23 @@ contract('Registrar', {reset_state: true}, function(accounts) {
       assert.equal(result.length, 2);
     }).then(done).catch(done);
   });
-  it('should allow to disable registrants');
-
-  it('should allow to get list of active registrants', function(done) {
+  it('should allow to disable registrants', function(done) {
+    var registrar = Registrar.deployed();
+    registrar.add(accounts[1], "").then(function() {
+    }).then(function() {
+      return registrar.add(accounts[2], "");
+    }).then(function() {
+      return registrar.edit(accounts[2], "", false);
+    }).then(function() {
+      return registrar.registrants.call(1);
+    }).then(function(result) {
+      assert.isTrue(result[2]);
+      return registrar.registrants.call(2);
+    }).then(function(result) {
+      assert.isFalse(result[2]);
+    }).then(done).catch(done);
+  });
+  it('should allow to get list of registrants', function(done) {
     var registrar = Registrar.deployed();
     registrar.add(accounts[1], "").then(function() {
     }).then(function() {

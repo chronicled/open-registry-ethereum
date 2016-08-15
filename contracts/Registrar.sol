@@ -2,7 +2,8 @@ contract Registrar {
     address public registrar;
 
     /**
-    * Created event that gets triggered when a new registrant gets created
+
+    * Created event, gets triggered when a new registrant gets created
     * event
     * @param registrant - The registrant address.
     * @param registrar - The registrar address.
@@ -11,7 +12,7 @@ contract Registrar {
     event Created(address indexed registrant, address registrar, bytes data);
 
     /**
-    * Updated event that gets triggered when a new registrant id Updated
+    * Updated event, gets triggered when a new registrant id Updated
     * event
     * @param registrant - The registrant address.
     * @param registrar - The registrar address.
@@ -74,7 +75,7 @@ contract Registrar {
     */
     function add(address _registrant, bytes _data) isRegistrar noEther returns (bool) {
         if (registrantIndex[_registrant] > 0) {
-            Error(2); //Duplicate registrant
+            Error(2); // Duplicate registrant
             return false;
         }
         uint pos = registrants.length++;
@@ -92,7 +93,7 @@ contract Registrar {
     */
     function edit(address _registrant, bytes _data, bool _active) isRegistrar noEther returns (bool) {
         if (registrantIndex[_registrant] == 0) {
-            Error(3); //No such registrant
+            Error(3); // No such registrant
             return false;
         }
         Registrant registrant = registrants[registrantIndex[_registrant]];
@@ -113,14 +114,6 @@ contract Registrar {
     }
 
     /**
-    * Function to reject simple sends to the contract.
-    * fallback_function
-    */
-    function () noEther {
-        throw;
-    }
-
-    /**
     * Get if a regsitrant is active or not.
     * constant_function
     * @param _registrant - The registrant address.
@@ -131,16 +124,22 @@ contract Registrar {
     }
 
     /**
-    * Get all the active registrants.
+    * Get all the registrants.
     * constant_function
     */
     function getRegistrants() constant returns (address[]) {
-        address[] memory active = new address[](registrants.length-1);
+        address[] memory result = new address[](registrants.length-1);
         for (uint j = 1; j < registrants.length; j++) {
-            active[j-1] = registrants[j].addr;
+            result[j-1] = registrants[j].addr;
         }
-        return active;
+        return result;
     }
+
+    /**
+    * Function to reject value sends to the contract.
+    * fallback_function
+    */
+    function () noEther {}
 
     /**
     * Desctruct the smart contract. Since this is first, alpha release of Open Registry for IoT, updated versions will follow.

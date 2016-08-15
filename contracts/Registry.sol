@@ -3,6 +3,8 @@ import "Registrar.sol";
 contract Registry {
     // Address of the Registrar contract which holds all the Registrants
     address public registrarAddress;
+    // Address of the account which deployed the contract. Used only to configure contract.
+    address public owner;
 
     /**
     * Creation event that gets triggered when a thing is created.
@@ -106,6 +108,7 @@ contract Registry {
         // Initialize arrays. Leave first element empty, since mapping points non-existent keys to 0.
         things.length++;
         schemas.length++;
+        owner = msg.sender;
     }
 
     /**
@@ -247,7 +250,11 @@ contract Registry {
         return true;
     }
 
-    //################# PUBLIC FUNCTIONS
+
+    //
+    // Public Functions
+    //
+
 
     /**
     * Set the registrar address for the contract, (This function can be called only once).
@@ -532,6 +539,7 @@ contract Registry {
     * constant_function
     * @param _id - identity for lookup.
     */
+
     // Todo: reevaluate this method. Do we need it?
     function thingExist(bytes32[] _id) constant returns(bool) {
         return idToThing[sha3(_id)] > 0;
