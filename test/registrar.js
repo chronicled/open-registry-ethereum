@@ -124,11 +124,6 @@ contract('Registrar', function(accounts) {
   var newCreateThingParams = [newChunkedIds, newThingData, 1];
   var newLookUpId = ids[randNum(newIds.length)];
 
-  var createdEvent;
-  var updatedEvent;
-  var deletedEvent;
-  var errorEvent;
-
   it('should add a new registrant and configure the registrar', function(done) {
     var registrar = Registrar.deployed();
     var registry = Registry.deployed();
@@ -391,9 +386,50 @@ contract('Registrar', function(accounts) {
 
     return registrar.discontinue({from: accounts[0]})
     .then(function(txHash) {
-      console.log(txHash);
+      assert.notEqual(txHash, null);
+      return registrar.setNextRegistrar(accounts[0], {from: accounts[1]});
+    })
+    .then(function(txHash) {
+      assert.notEqual(txHash, null);
       done();
     })
+    .catch(done);
+  });
+
+  it('should discontinue the registrar from the current registrar', function(done) {
+    var registrar = Registrar.deployed();
+
+    return registrar.discontinue({from: accounts[0]})
+    .then(function(txHash) {
+      assert.notEqual(txHash);
+      return registrar.isActiveRegistrant(accounts[0]);
+    })
+    .then(function(result) {
+      assert(!result);
+      return registrar.getRegistrants();
+    })
+    .then(function(registrants) {
+      assert.equal(registrants.length, 0);
+      done();
+    })
+    .catch(done);
+  });
+});
+
+contract('Registrar', {reset_state: true}, function(accounts) {
+  it('should not be possible to send value to contract', function(done) {
+    return Registrar.new({from: accounts[0], value: 1000})
+    .then(function(contract) {
+      return contract.add(accounts[1], '', {from: accounts[0], value: 1});
+    })
+    .then(function(result) {
+      done();
+    })
+    .catch(function(err) {
+      var error = err.toString().split('\n')[0];
+      assert.equal(error, 'Error: Error: VM Exception while executing transaction: invalid JUMP');      
+      done();
+    });
   });
 });
 
