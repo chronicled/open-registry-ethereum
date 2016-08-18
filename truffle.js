@@ -12,11 +12,13 @@ module.exports = {
   deploy: [
     "MultiAccess",
     "MultiAccessTester",
+    "MultiAccessTestable",
     "Registrar",
     "Registry"
   ],
   rpc: {
     host: "localhost",
-    port: 8545
+    port: 8545,
+    gas: 4000000 // A bit higher that initial limit. Current one is 4M+
   }
 };

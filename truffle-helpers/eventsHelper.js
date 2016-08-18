@@ -23,7 +23,7 @@ var EventsHelper = function() {
     });
   };
 
-  var waitEvents = function(watcher, count) {
+  var waitEvents = function(watcher, count, txHash) {
     return new Promise(function(resolve, reject) {
       var transactionCheck = function() {
         watcher.get(function(err, events) {
@@ -31,13 +31,14 @@ var EventsHelper = function() {
             console.log(err);
             return reject(err);
           }
-          if (events) {
-            if (events.length == count) {
-              return resolve(events);
+          eventsTx = events.filter(function(event) { return event.transactionHash == txHash; });
+          if (eventsTx) {
+            if (eventsTx.length == count) {
+              return resolve(eventsTx);
             }
-            if (events.length > count) {
-              console.log(events);
-              return reject("Filter produced " + events.length + " events, while receipt produced only " + count + " logs.");
+            if (eventsTx.length > count) {
+              console.log(eventsTx);
+              return reject("Filter produced " + eventsTx.length + " events, while receipt produced only " + count + " logs.");
             }
           }
           setTimeout(transactionCheck, 100);
@@ -53,7 +54,7 @@ var EventsHelper = function() {
     }
     return new Promise(function(resolve, reject) {
       waitReceipt(transactionHash, watcher.options.address).then(function(logsCount) {
-        return waitEvents(allEventsWatcher, logsCount);
+        return waitEvents(allEventsWatcher, logsCount, transactionHash);
       }).then(function() {
         watcher.get(function(err, events) {
           if (err) {
