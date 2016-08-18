@@ -56,6 +56,7 @@ Response:
 
 ```javascript
 {
+  $schema: 'https://chronicled.org/schemas/asset-detail-view',
   identities: ['pbk:ec:secp256r1:0260fed4ba255a9d31c961eb74c6356d68c049b8923b61fa6ce669622e60f29fb6'],
   product: {
 	  name: 'Air Max 95 Washington Redskins',
@@ -69,18 +70,27 @@ Response:
 	    'xOqXr3ydDDBr'
 	  ],
   },
-  authentication_url: 'https://www.nike.com/service_registry/authenticate'
+  challenge_url: 'https://www.nike.com/service-registry/challenge',
+  authentication_url: 'https://www.nike.com/service-registry/authenticate'
 }
 ```
 
+*Important note: above, you'll see the `$schema` property, which is mandatory for service discovery responses. This is standardized via <a href="http://json-schema.org/latest/json-schema-core.html#anchor22">JSON schema</a>:*
+
+> The "$schema" keyword is both used as a JSON Schema version identifier and the location of a resource which is itself a JSON Schema, which describes any schema written for this particular version.
+> 
+> This keyword MUST be located at the root of a JSON Schema. The value of this keyword MUST be a URI [RFC3986] and a valid JSON Reference [json‑reference]; this URI MUST be both absolute and normalized. The resource located at this URI MUST successfully describe itself. It is RECOMMENDED that schema authors include this keyword in their schemas.
+
+*chronicled.org will maintan an initial repository of valid JSON schemas. These are useful because they inform clients about the structure of the data and how to consume it. Additionally, partners and content providers can provide their own published repositories of schemas (which is another important point for greater interoperability).*
+
 **Verification**
 
-John then retrieves a digital signature from the BLE chip and authenticates against the `authentication_url` in exchange for a JWT and some services from Nike.
+John then retrieves a digital signature (by first requesting a challenge from the `challenge_url` in the intitial response) from the BLE chip and authenticates against the `authentication_url` in exchange for a JWT and some services from Nike.
 
 Request:
 
 ```javascript
-// https://www.nike.com/service_registry/authenticate
+// https://www.nike.com/service-registry/authenticate
 
 // body
 {
@@ -96,8 +106,8 @@ Response:
 {
   id_token: 'eyJhbGciOiJSUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiIxMjM0NTY3ODkwIiwibmFtZSI6IkpvaG4gRG9lIiwicHJvZHVjdF9pZCI6ImFiWDY3IiwiYWRtaW4iOmZhbHNlLCJleHBpcmVzIjoxNDcxNDc5MjY2MDY5fQ.bzPZUuY0QP5yVp-aXWte_DhfyU4WhqlFcx9lBW75yWbG-lmN0Nfp3bjoH34w-BIj63PKoggdrrnTTSm5Oc-lWUUTX0bYWLnZuOnIOcc_xhXcZIFJjEaPbO5PbjRfGWPrnMMy4Fr0nCNCAHP282qNaHFADaTuFSBH4Kyej2vrGs0',
   service_urls: [
-  	'https://www.nike.com/service_registry/promotion?product_id=abX67',
-  	'https://www.nike.com/service_registry/video?product_id=abX67'
+  	'https://www.nike.com/service-registry/promotion?product_id=abX67',
+  	'https://www.nike.com/service-registry/video?product_id=abX67'
   ]
 }
 ```
