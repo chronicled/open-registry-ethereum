@@ -11,19 +11,23 @@ Service URL response should be in JSON format.
 ## Data Schema
 ```
 {
+	version: <schema version>,
+	sku: <string:SKU number>,
 	name: <string>,
 	description: <string>,
-	size: <string>,
+	sizes: [<string>],
+	colors: [<string>],
 	thumbnail_url: <>,
 	product_page_url: <>,
 	weight: <string>,
 	dimensions: <string>,
 	product_id: <string: registrant's internal ID>,
-	rating: <number:0-5>
-	deals: [description: <>, image_url: <>, action_url: <>], // Promotions
+	rating: <number:0-5>,
+	promotions: [description: <>, image_url: <>, action_url: <>],
 	images: [{title: <>, url: <>}],
 	videos: [{title: <>, url: <>, length: <>}],
-	commerce_points: [{title: <>, thumbnail_url: <>, sell_point_url: <>}], // Where to buy
+	ecommerce_points: [{title: <>, thumbnail_url: <>, sell_point_url: <>}], // Where to buy
+	related_products: [{title: <>, description: <>, thumbnail_url: <>, product_page_url: <>}],
 	proximity_proof: {challenge_url: <>, metadata_url: <>},
 	instructions: [{title: <>, url: <>}]
 }
