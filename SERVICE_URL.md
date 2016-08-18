@@ -38,7 +38,7 @@ In this case, the services Nike gave John were access to a private shoe selectio
 
 ### Code example
 
-John scans the BLE tag on his Nike Air Max 95 "Washington Redskins" sneakers and gets a blockchain records, which leads him to the service discovery page.
+John scans the BLE tag on his Nike Air Max 95 "Washington Redskins" sneakers and gets a blockchain record, which leads him to the service discovery page.
 
 **Blockchain record**
 
@@ -114,3 +114,7 @@ If we decode the `id_token` (https://www.jwt.io), we see this information in the
 }
 ```
 In other words, John's access to the content for his specific product ID expires some time on August 17th. He can authenticate again for a new token and get continued access to the content, as long as he stays close to his sneakers. Additionally, the `service_urls` Nike provides can change at any time as well during the next authentication (in other words, some services can expire or change at Nike's discretion, which is a benefit of using the service discovery pattern).
+
+# Conclusion
+
+Based on the principle of interoperability (using publicly available specifications), content providers and partners can implement any of the discovery, authentication, and consumption stages as outlined above. Services can be easily interchanged, and data from multiple services can be aggregated together. This provides a high degree of dynamic content that plays well alongside the unforgeable identities of Things.
