@@ -1,3 +1,5 @@
+// Copyright (c) 2016 Chronicled, Inc. All rights reserved.
+
 var accounts;
 var account;
 var balance;

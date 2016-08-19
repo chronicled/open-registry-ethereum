@@ -1,3 +1,5 @@
+// Copyright (c) 2016 Chronicled, Inc. All rights reserved.
+
 // Set testrpc --gasLimit=3700000, so contract can be deployed
 
 

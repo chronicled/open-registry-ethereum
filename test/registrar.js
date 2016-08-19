@@ -1,3 +1,5 @@
+// Copyright (c) 2016 Chronicled, Inc. All rights reserved.
+
 'use strict';
 
 var eventsHelper = require('../truffle-helpers/eventsHelper.js');

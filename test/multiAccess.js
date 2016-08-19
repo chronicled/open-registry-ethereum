@@ -1,3 +1,5 @@
+// Copyright (c) 2016 Chronicled, Inc. All rights reserved.
+
 contract('MultiAccess', {reset_state: true}, function(accounts) {
   var eventsHelper = require('../truffle-helpers/eventsHelper.js');
   var multiAccess = undefined;

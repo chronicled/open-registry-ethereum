@@ -153,3 +153,6 @@ pbk:rsa:2048:cb47e6aada931986bb6bbf02c8618437c072cefa4e19c1ee6cb189b95a49e3ce94f
 
 ## Useful Resources
 Standards naming: https://www.ietf.org/rfc/rfc4492.txt
+
+## Copyright
+Copyright (c) 2016 Chronicled, Inc. All rights reserved.

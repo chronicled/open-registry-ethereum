@@ -1,3 +1,5 @@
+// Copyright (c) 2016 Chronicled, Inc. All rights reserved.
+
 var EventsHelper = function() {
   var allEventsWatcher = undefined;
 
