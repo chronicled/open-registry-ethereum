@@ -7,8 +7,7 @@
   },
   "contributors": [
     "Ambisafe, Inc. (http://ambisafe.co/)",
-    "Drew Stone (http://chronicled.com)",
-    "Maksym Petkus <me@petkus.info> (http://chronicled.com)"
+    "Chronicled (http://chronicled.com)"
   ],
   "license" : "Apache-2.0",
   "dependencies": {
