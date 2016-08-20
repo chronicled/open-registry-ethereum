@@ -6,8 +6,8 @@
     "test": "truffle test"
   },
   "contributors": [
-    "Ambisafe, Inc. (http://ambisafe.co/)",
-    "Chronicled (http://chronicled.com)"
+    "Chronicled Inc. (http://chronicled.com)",
+    "Ambisafe Inc. (http://ambisafe.co/)"
   ],
   "license" : "Apache-2.0",
   "dependencies": {
