@@ -145,6 +145,7 @@ contract Registry {
         return true;
     }
 
+    // Review: _newIndex param comment repeated 2 times
     /**
     * Point provided Identities to the desired "things" array index in the lookup hash table idToThing.
     * internal_function
@@ -228,6 +229,7 @@ contract Registry {
             // Single Identity array
             bytes32[] memory id = new bytes32[](cellsPerId);
 
+            // Review: j is uint8 while cellsPerId is up to uint12. cellsPerId >= 256 will result in an inifitine loop.
             for (uint8 j = 0; j < cellsPerId; j++) {
                 id[j] = _ids[cell++];
             }
@@ -323,8 +325,8 @@ contract Registry {
 
     /**
     * Create multiple Things at once.
-    * Review: user should be aware that if there will be not enough identities transaction will run out of gas.
-    * Review: user should be aware that providing too many identities will result in some of them not being used.
+    * Review-prev: user should be aware that if there will be not enough identities transaction will run out of gas.
+    * Review-prev: user should be aware that providing too many identities will result in some of them not being used.
     * public_function
     * @param _ids - The Thing's IDs to be added in bytes32 chunks
     * @param _idsPerThing — number of IDs per thing, in relevant order
@@ -399,6 +401,7 @@ contract Registry {
             return false;
         }
 
+        // Review: things[index].ownerAddress cannot be 0x0, first condition is useless
         if (things[index].ownerAddress != 0x0 && things[index].ownerAddress != msg.sender) {
             Error(3, _id);
             return false;
@@ -426,11 +429,13 @@ contract Registry {
             return false;
         }
 
+        // Review: things[index].ownerAddress cannot be 0x0, first condition is useless
         if (things[index].ownerAddress != 0x0 && things[index].ownerAddress != msg.sender) {
             Error(3, _id);
             return false;
         }
 
+        // Review: should be _schemaIndex >= schemas.length
         if (_schemaIndex > schemas.length || _schemaIndex == 0) {
             Error(4, _id);
             return false;
@@ -466,6 +471,7 @@ contract Registry {
             return false;
         }
 
+        // Review: will broadcast update even if isValid stays the same
         things[index].isValid = _isValid;
         // Broadcast event
         Updated(_id, things[index].ownerAddress, things[index].isValid);
@@ -493,15 +499,18 @@ contract Registry {
         // Rewire Thing's identities to index 0, e.g. delete.
         if (false == _rewireIdentities(things[index].identities, index, 0, 0)) {
             // Cannot rewire, should never happen
+            // Review: consider adding an Error events to find out if will happen eventually
             return false;
         }
 
         // Put last element in place of deleted one
+        // Review: will not broadcast Deleted event if condition is not met
         if (index != things.length - 1) {
             // Rewire identities of the last Thing to the new prospective index.
             if (false == _rewireIdentities(things[things.length - 1].identities, things.length - 1, index, 0)) {
                 // Cannot rewire, should never happen
                 _rewireIdentities(things[index].identities, 0, index, 0); // Rollback
+                // Review: consider adding an Error events to find out if will happen eventually
                 return false;
             }
 
@@ -535,6 +544,7 @@ contract Registry {
         var index = idToThing[sha3(_id)];
         // No such Thing
         if (index == 0) {
+            // Review: constant functions should not broadcast events
             Error(2, _id);
             return;
         }
@@ -548,6 +558,7 @@ contract Registry {
     * @param _id - identity for lookup.
     */
 
+    // Review: consider resolving todo before release
     // Todo: reevaluate this method. Do we need it?
     function thingExist(bytes32[] _id) constant returns(bool) {
         return idToThing[sha3(_id)] > 0;
