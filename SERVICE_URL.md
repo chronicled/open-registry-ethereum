@@ -3,7 +3,7 @@
 ## Introduction
 Service URL is the property of published Thing in Open Registry. Since amount of data one can put in public blockchain is limited, this concept was introduced which allows to discover much bigger amount of information about Thing (product), like detailed description, images, videos, assembling instructions, manuals, materials used and more. 
 
-Also Service URL allows to apply Proof of Proximity concept, which allows to provide unique / locked content to consumers which are in possession of the Thing.
+Also Service URL allows to apply Proof of Proximity concept, which allows to provide unique / locked content to consumers which are in physical proximity of the Thing.
 
 ## Data Format
 Service URL response should be in JSON format.
