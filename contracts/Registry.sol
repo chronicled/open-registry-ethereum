@@ -1,4 +1,7 @@
 // Copyright (c) 2016 Chronicled, Inc. All rights reserved.
+// http://explorer.chronicled.org
+// http://demo.chronicled.org
+// http://chronicled.org
 
 import "Registrar.sol";
 
