@@ -6,9 +6,8 @@
     "test": "truffle test"
   },
   "contributors": [
-    "Ambisafe, Inc. (http://ambisafe.co/)",
-    "Drew Stone (http://chronicled.com)",
-    "Maksym Petkus <me@petkus.info> (http://chronicled.com)"
+    "Chronicled Inc. (http://chronicled.com)",
+    "Ambisafe Inc. (http://ambisafe.co/)"
   ],
   "license" : "Apache-2.0",
   "dependencies": {
