@@ -66,14 +66,24 @@ contract Registry {
       bool isValid;
     }
 
-    // Things are stored in the array
+    struct Schema {
+        string name;
+        string description;
+        // ProtoBuf message definition. 
+        string definition;
+    }
+
+    // Things are stored in the array.
     Thing[] public things;
 
     // Identity to Thing index pointer for lookups and duplicates prevention.
     mapping(bytes32 => uint) public idToThing;
 
-    // Content of ProtoBuffer schema.
-    bytes[] public schemas;
+    // Latest standard schema.
+    Schema public standardSchema;
+
+    // Things schemas.
+    Schema[] public schemas;
 
     /**
     * Function can't contain Ether value.
@@ -113,7 +123,6 @@ contract Registry {
     function Registry() {
         // Initialize arrays. Leave first element empty, since mapping points non-existent keys to 0.
         things.length++;
-        schemas.length++;
         deployerAddress = msg.sender;
     }
 
@@ -300,7 +309,7 @@ contract Registry {
             return false;
         }
 
-        if (_schemaIndex >= schemas.length || _schemaIndex == 0) {
+        if (_schemaIndex >= schemas.length) {
             Error(4, _ids);
             return false;
         }
@@ -434,7 +443,7 @@ contract Registry {
             return false;
         }
 
-        if (_schemaIndex > schemas.length || _schemaIndex == 0) {
+        if (_schemaIndex >= schemas.length) {
             Error(4, _id);
             return false;
         }
@@ -534,7 +543,7 @@ contract Registry {
     * constant_function
     * @param _id - identity of the thing.
     */
-    function getThing(bytes32[] _id) constant returns(bytes32[], bytes32[], uint88, bytes, address, bool) {
+    function getThing(bytes32[] _id) constant returns(bytes32[], bytes32[], uint88, string, address, bool) {
         var index = idToThing[sha3(_id)];
         // No such Thing
         if (index == 0) {
@@ -542,7 +551,7 @@ contract Registry {
             return;
         }
         Thing thing = things[index];
-        return (thing.identities, thing.data, thing.schemaIndex, schemas[thing.schemaIndex], thing.ownerAddress, thing.isValid);
+        return (thing.identities, thing.data, thing.schemaIndex, schemas[thing.schemaIndex].definition, thing.ownerAddress, thing.isValid);
     }
 
     /**
@@ -557,14 +566,35 @@ contract Registry {
     }
 
     /**
-    * Create a new schema. Provided as hex of ProtoBuf-encoded schema data.
+    * Create a new standard schema.
     * public_function
-    * @param _schema - New schema string to add.
+    * @param _name - New schema name.
+    * @param _description - New schema description.
+    * @param _definition - New schema ProtoBuf definition.
     */
-    function createSchema(bytes _schema) isRegistrar noEther returns(uint) {
-        uint pos = schemas.length++;
-        schemas[pos] = _schema;
-        return pos;
+    function createStandardSchema(string _name, string _description, string _definition) isRegistrar noEther returns(bool) {
+        standardSchema = Schema(_name, _description, _definition);
+        return true;
+    }
+
+    /**
+    * Create a new schema.
+    * public_function
+    * @param _name - New schema name.
+    * @param _description - New schema description.
+    * @param _definition - New schema ProtoBuf definition that will be concatenated to the standardSchema definition in order to create valid ProtoBuf message definition.
+    */
+    function createSchema(string _name, string _description, string _definition) isRegistrant noEther returns(uint) {
+        bytes memory definition = bytes(_definition);
+        bytes memory standardDefinition = bytes(standardSchema.definition);
+        bytes memory schemaDefinition = new bytes(standardDefinition.length + definition.length);
+        for (uint i = 0; i < standardDefinition.length; i++) {
+            schemaDefinition[i] = standardDefinition[i];
+        }
+        for (uint j = 0; j < definition.length; j++) {
+            schemaDefinition[j + i] = definition[j];
+        }
+        return schemas.push(Schema(_name, _description, string(schemaDefinition))) - 1;
     }
 
     /**
