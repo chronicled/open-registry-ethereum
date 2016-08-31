@@ -55,10 +55,6 @@ Electronic Product Code: Serialized Global Trade Item Number
 epc:id:sgtin:0614141.012345.62852
 ```
 
-```
-sn:C02EK02HG8DL
-```
-
 Serial number
 
 ```
