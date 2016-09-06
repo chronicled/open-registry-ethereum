@@ -534,7 +534,7 @@ contract Registry {
     * Get length of the schemas array
     * constant_function
     */
-    function getSchemasLenght() constant returns(uint) {
+    function getSchemasLength() constant returns(uint) {
         return schemas.length;
     }
 
