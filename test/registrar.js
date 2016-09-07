@@ -5,7 +5,6 @@
 var eventsHelper = require('../truffle-helpers/eventsHelper.js');
 
 contract('Registrar', function(accounts) {
-  var eventsHelper = require('../truffle-helpers/eventsHelper.js');
   var registrar;
 
   var createdEvent;
@@ -119,11 +118,11 @@ contract('Registrar', function(accounts) {
   ];
 
   var chunkedIds = UtilURN.packer.encodeAndChunk(ids);
-  var createThingParams = [chunkedIds, thingData, 1];
+  var createThingParams = [chunkedIds, thingData, 0];
   var lookUpId = ids[randNum(ids.length)];
 
   var newChunkedIds = UtilURN.packer.encodeAndChunk(newIds);
-  var newCreateThingParams = [newChunkedIds, newThingData, 1];
+  var newCreateThingParams = [newChunkedIds, newThingData, 0];
   var newLookUpId = ids[randNum(newIds.length)];
 
   it('should add a new registrant and configure the registrar', function(done) {
@@ -146,8 +145,11 @@ contract('Registrar', function(accounts) {
     var registrar = Registrar.deployed();
     var registry = Registry.deployed();
 
-    return registry.createSchema(schemaContentHex)
+    return registry.createStandardSchema('Name', 'Descr', '')
     .then(function(txHash) {
+      assert.notEqual(txHash, null);
+      return registry.createSchema('Name', 'Descr', schemaContent, {from: accounts[1]});
+    }).then(function(txHash) {
       assert.notEqual(txHash, null);
       return registry.createThing(createThingParams[0], createThingParams[1], createThingParams[2], {from: accounts[1]});
     })
@@ -174,7 +176,7 @@ contract('Registrar', function(accounts) {
     var registrar = Registrar.deployed();
     var registry = Registry.deployed();
 
-    return registry.updateThingData.call(packURN(lookUpId), newIds, 1, {from: accounts[1]})
+    return registry.updateThingData.call(packURN(lookUpId), newIds, 0, {from: accounts[1]})
     .then(function(result) {
       assert(result);
       done();
