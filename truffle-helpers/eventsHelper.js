@@ -6,20 +6,21 @@ var EventsHelper = function() {
   var waitReceipt = function(transactionHash, address) {
     return new Promise(function(resolve, reject) {
       var transactionCheck = function() {
-        var receipt = web3.eth.getTransactionReceipt(transactionHash);
-        if (receipt) {
-          var count = 0;
-          if (address) {
-            receipt.logs.forEach(function(log) {
-              count += log.address === address ? 1 : 0;
-            });
+        web3.eth.getTransactionReceipt(transactionHash, function(err, receipt) {
+          if (receipt) {
+            var count = 0;
+            if (address) {
+              receipt.logs.forEach(function(log) {
+                count += log.address === address ? 1 : 0;
+              });
+            } else {
+              count = receipt.logs.length;
+            }
+            return resolve(count);
           } else {
-            count = receipt.logs.length;
+            setTimeout(transactionCheck, 100);
           }
-          return resolve(count);
-        } else {
-          setTimeout(transactionCheck, 100);
-        }
+        });
       };
       transactionCheck();
     });

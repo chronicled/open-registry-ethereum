@@ -5,10 +5,12 @@
 
 // Globally used
 var UtilURN = require('open-registry-utils').urn;
+var Promise = require('bluebird');
+Promise.promisifyAll(web3.eth);
 var packURN = UtilURN.packer.encodeAndChunk.bind(UtilURN.packer);
 var unpackURN = UtilURN.packer.decode.bind(UtilURN.packer);
 var randNum = function(upTo) {return Math.floor(Math.random() * upTo)};
-var randId = function() {return ('00000000' + randNum(100000000000000000)).slice(-18)}
+var randId = function() {return ('00000000' + randNum(100000000000000000)).slice(-18)};
 
 var ids = [
   "pbk:ec:secp256r1:0260fed4ba255a9d31c961eb74c6356d68c049b8923b61fa6ce669622e60f29fb6",
@@ -39,7 +41,7 @@ contract('Registry', function(accounts) {
     var errorEvent;
 
     var chunkedIds = UtilURN.packer.encodeAndChunk(ids);
-    var createThingParams = [chunkedIds, thingData, 1];
+    var createThingParams = [chunkedIds, thingData, 0];
     var lookUpId = ids[randNum(ids.length)];
     // Shared object between "it" blocks
     var shared = {};
@@ -77,14 +79,31 @@ contract('Registry', function(accounts) {
 
 
 
+    var basicSchema = "message Basic{}";
     var schemaContent = "message Thing {" +
                         "required string service_url = 1;" +
                         "}";
     var schemaContentHex = '0x' + toHex(schemaContent);
     console.log(schemaContentHex);
 
+    it('Create Standard schema', function(done) {
+      registrar = Registrar.deployed();
+      registry = Registry.deployed();
 
+      registry.createStandardSchema('Basic', 'Basic schema', basicSchema)
+      .then(function(txHash) {
+        assert.notEqual(txHash, null);
+        done();
+      }).catch(done);
+    });
 
+    it('Add registrant', function(done) {
+      registrar.add(accounts[0], "")
+      .then(function(txHash){
+          assert.notEqual(txHash, null);
+          done();
+      }).catch(done);
+    });
 
     it('Create Schema', function(done) {
       // Setting shared in this test contract test block variables
@@ -97,23 +116,12 @@ contract('Registry', function(accounts) {
       deletedEvent = registry.Deleted();
       errorEvent = registry.Error();
 
-      registry.createSchema(schemaContentHex)
+      registry.createSchema('Custom', 'Custom schema', schemaContent)
       .then(function(txHash) {
         assert.notEqual(txHash, null);
         done();
-      });
+      }).catch(done);
     });
-
-
-    it('Add registrar', function(done) {
-      // Add Registrant
-      registrar.add(accounts[0], "")
-      .then(function(txHash){
-          assert.notEqual(txHash, null);
-          done();
-      });
-    });
-
 
     it('Create Thing', function(done) {
       // Check return value
@@ -134,7 +142,7 @@ contract('Registry', function(accounts) {
         // Same Ids as provided
         assert.deepEqual(eventParams.ids, chunkedIds);
         done();
-      });
+      }).catch(done);
     });
 
     it('Add Identities', function(done) {
@@ -152,7 +160,7 @@ contract('Registry', function(accounts) {
       }).then(function(events) {
         assert.deepEqual(events[0].args.ids, packURN(lookUpId));
         done();
-      });
+      }).catch(done);
     });
 
     it('Look up Thing by any Identity', function(done) {
@@ -166,19 +174,19 @@ contract('Registry', function(accounts) {
             assert.deepEqual(thing[0], packURN(currentIds));
             // Is data equal to original
             assert.deepEqual(thing[1], thingData);
-            assert.equal(thing[3], schemaContentHex);
+            assert.equal(thing[3], basicSchema + schemaContent);
 
             if (--liveCalls == 0) resolve();
           });
         });
-      }).then(done);
+      }).then(done).catch(done);
     });
 
     it('Max Identity schema length + long identity', function(done) {
       // Check maximum possible Identity schema length, with really big identity (110 bytes32 cell, ~3.5Kb)
       shared.maxId = Array(256).join('s') + ":" + Array(3500 * 2 + 1).join('f');
 
-      registry.createThing(packURN(shared.maxId), ["0x1","0x2"], 1)
+      registry.createThing(packURN(shared.maxId), ["0x1","0x2"], 0)
       .then(function(txHash) {
         assert.notEqual(txHash, null);
         // Created Event contains whole id
@@ -186,7 +194,7 @@ contract('Registry', function(accounts) {
       }).then(function(events) {
         assert.deepEqual(events[0].args.ids, packURN(shared.maxId));
         done();
-      });
+      }).catch(done);
     });
 
     it('Duplicate Identites are not allowed', function(done) {
@@ -213,7 +221,7 @@ contract('Registry', function(accounts) {
         assert.equal(args.code, 1);
         assert.deepEqual(args.reference, shared.overlappingIds);
         done();
-      });
+      }).catch(done);
     });
 
     it('Delete Thing', function(done) {
@@ -243,7 +251,7 @@ contract('Registry', function(accounts) {
           });
         });
       })
-      .then(done);
+      .then(done).catch(done);
     });
 
     it('Create multiple Things at once', function(done) {
@@ -254,7 +262,7 @@ contract('Registry', function(accounts) {
           [2,2,1], // ids per Thing
           ["0x1","0x2","0x3","0x4","0x5","0x6","0x7"], // data
           [2,1,3], // data cells per Thing
-          1        // Schema index
+          0        // Schema index
       ).then(function(txHash) {
         assert.notEqual(txHash, null);
 
@@ -267,23 +275,26 @@ contract('Registry', function(accounts) {
 
         // Todo try access all the created Things
         done();
-      }).catch(console.log);
+      }).catch(done);
     });
 
 
     it('Discontinue smart contract', function(done) {
       // Can create multiple Things in one call
       shared.multiRandId = 'custom:' + randId();
-      registry.discontinue.call({from: accounts[1]}).then(function(result) {
-        assert.equal(result, false);
-
-        registry.discontinue.call({from: accounts[0]});
-      }).catch(console.log).then(function(result) {
-        assert.equal(result, true);
+      registry.discontinue({from: accounts[1]}).then(function(tx) {
+        return web3.eth.getTransactionReceiptAsync(tx);
+      }).then(function(receipt) {
+        assert.isTrue(receipt.gasUsed > 21000);
+        return registry.discontinue({from: accounts[0]});
+      }).then(function(tx) {
+        return web3.eth.getTransactionReceiptAsync(tx);
+      }).then(function(receipt) {
+        assert.isTrue(receipt.gasUsed < 21000);
 
         // Todo try access all the created Things
         done();
-      }).catch(console.log);
+      }).catch(done);
     });
 
 
@@ -302,14 +313,16 @@ contract('Registry', function(accounts) {
       var registrar = Registrar.deployed();
 
       var chunkedIds = UtilURN.packer.encodeAndChunk(ids);
-      var params = [chunkedIds, ["0x1","0x2"], 1];
+      var params = [chunkedIds, ["0x1","0x2"], 0];
 
       var selection;
       // Check method return value
       registry.configure(registrar.address).then(function(txHash) {
-        return registry.createSchema('This is a test');
+        return registry.createStandardSchema('This is a test', 'Test', '');
       }).then(function(txHash) {
         return registrar.add(accounts[0], "");
+      }).then(function(txHash) {
+        return registry.createSchema('This is a test', 'Test', 'message Thing {}');
       }).then(function(txHash) {
         return registry.createThing.call.apply(null, params);
       }).then(function(result) {
@@ -329,7 +342,7 @@ contract('Registry', function(accounts) {
       }).then(function(res) {
         assert(chunkedIds.length < res[0].length);
         return done();
-      }).catch(console.log);
+      }).catch(done);
     });
 
     it('Creating Thing Failure: Schema index out of range', function(done) {
@@ -343,10 +356,12 @@ contract('Registry', function(accounts) {
       // Check method return value
       //
       registry.configure(registrar.address).then(function(txHash) {
-        return registry.createSchema('This is a test');
+        return registry.createStandardSchema('This is a test', 'Test', '');
       }).then(function(txHash) {
         return registrar.add(accounts[0], "");
       }).then(function() {
+        return registry.createSchema('This is a test', 'Test', 'message Thing {}');
+      }).then(function(txHash) {
         return registry.createThing.call.apply(null, params)
       }).then(function(result) {
         assert.equal(result, false);
@@ -404,11 +419,13 @@ contract('Registry', function(accounts) {
       ];
 
       var chunkedIds = UtilURN.packer.encodeAndChunk(batch_ids);
-      var batch = [chunkedIds, ids_count, data_array, data_lengths, 1];
+      var batch = [chunkedIds, ids_count, data_array, data_lengths, 0];
       registry.configure(registrar.address).then(function(txHash) {
-        return registry.createSchema('This is a test');
+        return registry.createStandardSchema('This is a test', 'Test', '');
       }).then(function(txHash) {
         return registrar.add(accounts[0], "");
+      }).then(function() {
+        return registry.createSchema('This is a test', 'Test', 'message Thing {}');
       }).then(function() {
         return registry.createThings.apply(null, batch);
       }).then(function(result) {
@@ -471,9 +488,11 @@ contract('Registry', function(accounts) {
       var chunkedIds = UtilURN.packer.encodeAndChunk(batch_ids);
       var batch = [chunkedIds, ids_count, data_array, data_lengths, 5];
       registry.configure(registrar.address).then(function(txHash) {
-        return registry.createSchema('This is a test');
+        return registry.createStandardSchema('This is a test', 'Test', '');
       }).then(function(txHash) {
         return registrar.add(accounts[0], "");
+      }).then(function() {
+        return registry.createSchema('This is a test', 'Test', 'message Thing {}');
       }).then(function() {
         return registry.createThings.apply(null, batch);
       }).then(function(result) {
@@ -492,31 +511,33 @@ contract('Registry', function(accounts) {
         var registrar = Registrar.deployed();
 
         var chunkedIds = UtilURN.packer.encodeAndChunk(ids);
-        var params = [chunkedIds, ["0x1","0x2"], 1];
+        var params = [chunkedIds, ["0x1","0x2"], 0];
 
         var selection;
         // Check method return value
 
         registry.configure(registrar.address).then(function(txHash) {
-          return registry.createSchema('This is a test');
+          return registry.createStandardSchema('This is a test', 'Test', '');
         }).then(function(txHash) {
           return registrar.add(accounts[0], "");
+        }).then(function() {
+          return registry.createSchema('This is a test', 'Test', 'message Thing {}');
         }).then(function() {
           return registry.createThing.apply(null, params);
         }).then(function(txHash) {
           selection = packURN(ids[randNum(ids.length)]);
           return registry.addIdentities(selection, packURN(newId));
         }).then(function(txHash) {
-          return registry.updateThingData.call(selection, ['0x09128049214'], 1);
+          return registry.updateThingData.call(selection, ['0x09128049214'], 0);
         }).then(function(result) {
           assert.equal(result, true);
-          return registry.updateThingData(selection, ['0x09128049214'], 1);
+          return registry.updateThingData(selection, ['0x09128049214'], 0);
         }).then(function(txHash) {
           assert.notEqual(txHash, null);
           return registry.getThing.call(selection);
         }).then(function(res) {
           assert.equal(res[1].length, 1);
-          assert.equal(res[2].toNumber(), 1);
+          assert.equal(res[2].toNumber(), 0);
           return;
         }).then(function() {
           done();
@@ -528,24 +549,26 @@ contract('Registry', function(accounts) {
         var registrar = Registrar.deployed();
 
         var chunkedIds = UtilURN.packer.encodeAndChunk(ids);
-        var params = [chunkedIds, ["0x1","0x2"], 1];
+        var params = [chunkedIds, ["0x1","0x2"], 0];
 
         var selection;
 
         registry.configure(registrar.address).then(function(txHash) {
-          return registry.createSchema('This is a test');
+          return registry.createStandardSchema('This is a test', 'Test', '');
         }).then(function(txHash) {
           return registrar.add(accounts[0], "");
+        }).then(function() {
+          return registry.createSchema('This is a test', 'Test', 'message Thing {}');
         }).then(function() {
           return registry.createThing.apply(null, params);
         }).then(function(txHash) {
           selection = packURN(ids[randNum(ids.length)]);
           return registry.addIdentities(selection, packURN(newId));
         }).then(function(txHash) {
-          return registry.updateThingData.call(packURN(newId), ['0xDEADBEEF'], 1);
+          return registry.updateThingData.call(packURN(newId), ['0xDEADBEEF'], 0);
         }).then(function(result) {
           assert.equal(result, true);
-          return registry.updateThingData(packURN(newId), ['0xdeadbeef'], 1);
+          return registry.updateThingData(packURN(newId), ['0xdeadbeef'], 0);
         }).then(function(txHash) {
           assert.notEqual(txHash, null);
           return registry.getThing.call(packURN(newId));
@@ -553,7 +576,7 @@ contract('Registry', function(accounts) {
           assert(res[0].length > chunkedIds.length);
           assert.equal(res[1].length, 1);
           assert.equal(res[1][0], '0xdeadbeef'.concat(Array(57).join('0')))
-          assert.equal(res[2].toNumber(), 1);
+          assert.equal(res[2].toNumber(), 0);
           return;
         }).then(function() {
           done();
@@ -565,15 +588,17 @@ contract('Registry', function(accounts) {
         var registrar = Registrar.deployed();
 
         var chunkedIds = UtilURN.packer.encodeAndChunk(ids);
-        var params = [chunkedIds, ["0x1","0x2"], 1];
+        var params = [chunkedIds, ["0x1","0x2"], 0];
 
         var selection;
         // Check method return value
 
         registry.configure(registrar.address).then(function(txHash) {
-          return registry.createSchema('This is a test');
+          return registry.createStandardSchema('This is a test', 'Test', '');
         }).then(function(txHash) {
           return registrar.add(accounts[0], "");
+        }).then(function() {
+          return registry.createSchema('This is a test', 'Test', 'message Thing {}');
         }).then(function() {
           return registry.createThing.apply(null, params);
         }).then(function(txHash) {
@@ -594,13 +619,15 @@ contract('Registry', function(accounts) {
         var registrar = Registrar.deployed();
 
         var chunkedIds = UtilURN.packer.encodeAndChunk(ids);
-        var params = [chunkedIds, ["0x1","0x2"], 1];
+        var params = [chunkedIds, ["0x1","0x2"], 0];
 
         var selection;
         registry.configure(registrar.address).then(function(txHash) {
-          return registry.createSchema('This is a test');
+          return registry.createStandardSchema('This is a test', 'Test', '');
         }).then(function(txHash) {
           return registrar.add(accounts[0], "");
+        }).then(function() {
+          return registry.createSchema('This is a test', 'Test', 'message Thing {}');
         }).then(function(txHash) {
           return registry.createThing.apply(null, params);
         }).then(function(txHash) {
@@ -620,15 +647,17 @@ contract('Registry', function(accounts) {
         var registrar = Registrar.deployed();
 
         var chunkedIds = UtilURN.packer.encodeAndChunk(ids);
-        var params = [chunkedIds, ["0x1","0x2"], 1];
+        var params = [chunkedIds, ["0x1","0x2"], 0];
 
         var selection;
         // Check method return value
 
         registry.configure(registrar.address).then(function(txHash) {
-          return registry.createSchema('This is a test');
+          return registry.createStandardSchema('This is a test', 'Test', '');
         }).then(function(txHash) {
           return registrar.add(accounts[0], "");
+        }).then(function() {
+          return registry.createSchema('This is a test', 'Test', 'message Thing {}');
         }).then(function() {
           return registry.createThing.apply(null, params);
         }).then(function(txHash) {
@@ -658,16 +687,18 @@ contract('Registry', function(accounts) {
         var registrar = Registrar.deployed();
 
         var chunkedIds = UtilURN.packer.encodeAndChunk(ids);
-        var params = [chunkedIds, ["0x1","0x2"], 1];
+        var params = [chunkedIds, ["0x1","0x2"], 0];
 
         var selection;
         // Check method return value
 
 
         registry.configure(registrar.address).then(function(txHash) {
-          return registry.createSchema('This is a test');
+          return registry.createStandardSchema('This is a test', 'Test', '');
         }).then(function(txHash) {
           return registrar.add(accounts[0], "");
+        }).then(function() {
+          return registry.createSchema('This is a test', 'Test', 'message Thing {}');
         }).then(function() {
           return registry.createThing.apply(null, params);
         }).then(function(txHash) {

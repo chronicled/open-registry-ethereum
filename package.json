@@ -9,10 +9,11 @@
     "Chronicled Inc. (http://chronicled.com)",
     "Ambisafe Inc. (http://ambisafe.co/)"
   ],
-  "license" : "Apache-2.0",
+  "license": "Apache-2.0",
   "dependencies": {
+    "bluebird": "^3.4.6",
+    "ethereumjs-testrpc": "2.1.0",
     "open-registry-utils": "^0.0.1",
-    "truffle": "1.0.3",
-    "ethereumjs-testrpc": "2.1.0"
+    "truffle": "1.0.3"
   }
 }
