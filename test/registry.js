@@ -79,6 +79,7 @@ contract('Registry', function(accounts) {
 
 
 
+    var basicSchema = "message Basic{}";
     var schemaContent = "message Thing {" +
                         "required string service_url = 1;" +
                         "}";
@@ -89,7 +90,7 @@ contract('Registry', function(accounts) {
       registrar = Registrar.deployed();
       registry = Registry.deployed();
 
-      registry.createStandardSchema('Basic', 'Basic schema', '')
+      registry.createStandardSchema('Basic', 'Basic schema', basicSchema)
       .then(function(txHash) {
         assert.notEqual(txHash, null);
         done();
@@ -115,7 +116,7 @@ contract('Registry', function(accounts) {
       deletedEvent = registry.Deleted();
       errorEvent = registry.Error();
 
-      registry.createSchema('Custom', 'Custome schema', schemaContent)
+      registry.createSchema('Custom', 'Custom schema', schemaContent)
       .then(function(txHash) {
         assert.notEqual(txHash, null);
         done();
@@ -173,7 +174,7 @@ contract('Registry', function(accounts) {
             assert.deepEqual(thing[0], packURN(currentIds));
             // Is data equal to original
             assert.deepEqual(thing[1], thingData);
-            assert.equal(thing[3], schemaContent);
+            assert.equal(thing[3], basicSchema + schemaContent);
 
             if (--liveCalls == 0) resolve();
           });
